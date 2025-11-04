@@ -6,11 +6,11 @@ import sys
 ################################################ GRAPH API : adjancency list/matrix  ###################################
 ########################################################################################################################
 
-def create_empty_graph(size, matrix_representation = True):
+def create_isolated_nodes_graph(size, matrix_representation = True):
      if matrix_representation:
           return [[0 for j in range(size)] for i in range(size)]
      else:
-          return {i:{j:0 for j in range(size)} for i in range(size)}
+          return {i:[] for i in range(size)}
      
 
 def has_arc(adjacency, u, v):
@@ -24,6 +24,18 @@ def has_arc(adjacency, u, v):
           else:
                return v in adjacency[u]
           
+
+def add_arc(adjacency, u, v):
+     if isinstance(adjacency, list):
+          adjacency[u][v] = 1
+     
+     elif isinstance(adjacency, dict):
+          if u not in adjacency:
+               print("The node 'u' is not in the graph.")
+               sys.exit()
+          else:
+               adjacency
+
 
 def delete_arc(adjacency, u, v):
      if isinstance(adjacency, list):
@@ -49,9 +61,20 @@ def successors(adjacency, u):
                return [v for v in adjacency[u]]
           
 
-
-
-
+def predecessors(adjacency, v, predecessors_list = None):
+     if predecessors_list is None:
+          if isinstance(adjacency, list):
+               for u in range (len(adjacency)):
+                    if adjacency[u][v] == 1:
+                         predecessors_list.append(u)
+          
+          elif isinstance(adjacency, dict):
+               for u in adjacency:
+                    if v in adjacency[u]:
+                         predecessors_list.append(u)
+     else:
+          return predecessors_list[v]
+          
 
 
 

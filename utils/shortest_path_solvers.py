@@ -1,7 +1,11 @@
 import sys
 import random
 from copy import deepcopy
-from graph_utils import make_path_simple, construct_tree_bsf
+import os
+import sys
+
+sys.path.append(os.getcwd())
+from graph_utils import make_path_simple, create_isolated_nodes_graph, successors, predecessors
 
 
 MODES = ["min_distance", "max_capacity"]
@@ -17,11 +21,13 @@ ARC_FILTERING_CRITERIAS = [None, "source_ndestination"]
 
 class DijkstraShortestPathsSolver:
 
-    def __init__(self, source, adjacency, weights, mode = "min_distance", optional_infos = None):
+    def __init__(self, source, adjacency, weights, 
+                 mode = "min_distance", matrix_representation = True, optional_infos = None):
         # The source, the adjacency matrix an the weight matrix
         self.source = source
         self.adjacency = adjacency
         self.weights = weights
+        self.matrix_representation = matrix_representation
 
         # The mode is how to intrepret the weights as well the estimate of the paths
         if mode not in MODES:
@@ -29,9 +35,10 @@ class DijkstraShortestPathsSolver:
             sys.exit()
         self.mode = mode
 
-        # Optional informations
+        # Optional informations (amon which the 'arc_filtering_criteria')
         self.optional_infos = optional_infos
-        self.arc_filtering_criteria = optional_infos["arc_filtering_criteria"] if optional_infos is not None and "arc_filtering_criteria" in optional_infos else None
+        self.arc_filtering_criteria = optional_infos.get("arc_filtering_criteria", None) if optional_infos is not None else None
+        self.predecessors_list = optional_infos.get("predecessors_list", None) if optional_infos is not None else None
 
     
     def initialize(self):
@@ -123,6 +130,10 @@ class DijkstraShortestPathsSolver:
             # Update not_processed and processed
             self.not_processed.remove(u)
             self.processed.add(u)
+            
+            # Get successors of the current node u
+            # successors(adjacency, u) 
+            successors = successors(self.adjacency, u)
 
             # Relax all edges (u, v) adjacent to u
             for v in range(len(self.adjacency)):
@@ -149,10 +160,12 @@ class DijkstraShortestPathsSolver:
             # Dequeue a node v
             v = queue.pop(0)
 
-            # Check the entering neighbours of v for shortest paths to be included in the DAG and enqueue theme if not visited
-            for u in range(len(self.adjacency)):
-                if self.adjacency[u][v] == 1 and not self._filter_arc(u, v) and\
-                    self._process_new_estimate(u, v) == self.path_estimates[v]:
+            # Return the predecessors of node v
+            predecessors_v = predecessors(self.adjacency, v, self.predecessors_list)
+
+            # Check the predecessors of v for shortest paths to be included in the DAG and enqueue theme if not visited
+            for u in predecessors_v:
+                if not self._filter_arc(u, v) and self._process_new_estimate(u, v) == self.path_estimates[v]:
                     # Pick the edge (u, v) in DAG if there is a shortest path from the source to v through u
                     self.dagsp[u][v] = 1
                     # If u is not visited and different from s, mark it as visited and enqueue it for later exploration
@@ -170,7 +183,8 @@ class DijkstraShortestPathsSolver:
         # Initializations
         self.destination = destination
         self.visited = [False]*len(self.adjacency)
-        self.dagsp = [[0 for j in range(len(self.adjacency))] for i in range(len(self.adjacency))]
+        self.dagsp = create_isolated_nodes_graph(len(self.adjacency), 
+                                                 matrix_representation = self.matrix_representation)
 
         # Find the DAG pf shortest paths
         self._backward_traverse_DAGSP_creation()
@@ -191,15 +205,20 @@ class DijkstraShortestPathsSolver:
             return path
         
         elif path_type == "random":
-            if self.mode == "min_distance":
-                # Return a random path from the DAG of shortest paths
-                self.construct_DAG_shortest_path (destination)
-                path, node = [self.source], self.source
+
+            def _return_random_path(adjacency, source, destination):
+                path, node = [source], source
                 while node != destination:
-                    next_node = random.choice([v for v in range(len(self.dagsp[node])) if self.dagsp[node][v]==1])
+                    next_node = random.choice(successors(adjacency, node))
                     path.append(next_node)
                     node = next_node
-                
+                return path
+
+            if self.mode == "min_distance":
+                # Construct the DAG of shortest paths
+                self.construct_DAG_shortest_path (destination)
+                # Return a random path from the subgraph of shortest paths
+                path = _return_random_path(self.dagsp, self.source, destination)
                 return path
         
             elif self.mode == "max_capacity":
@@ -210,11 +229,7 @@ class DijkstraShortestPathsSolver:
                 self.construct_DAG_shortest_path (destination) # !!!!! LIKE SAID EARLIER, THIS IS NOT A DAG, I REPEAT THIS IS NOT A DAG !!!!!
 
                 # Return a random path from the subgraph of fattest paths (this path my contain a cycle)
-                path, node = [self.source], self.source
-                while node != destination:
-                    next_node = random.choice([v for v in range(len(self.dagsp[node])) if self.dagsp[node][v]==1])
-                    path.append(next_node)
-                    node = next_node
+                path = _return_random_path(self.dagsp, self.source, destination)
                 
                 # Make the path in 'path' simple (by delecting cycles in it)
                 path = make_path_simple (path)
@@ -234,19 +249,16 @@ class DijkstraShortestPathsSolver:
             # Set the weight matrix of the solver as the adjacency matrix of the previously constructed subgraph
             # Call the dijkstra algorithm on this new solver and construct the DAG of shortest path out of it
             dijkstra_solver_filter = DijkstraShortestPathsSolver(source = self.source,
-                                                                 adj_mat = self.dagsp,
-                                                                 weight_mat = self.dagsp, 
-                                                                 mode = "min_distance")
+                                                                 adjacency = self.dagsp,
+                                                                 weights = self.dagsp, 
+                                                                 mode = "min_distance",
+                                                                 matrix_representation = self.matrix_representation)
             dijkstra_solver_filter.run_dijkstra()
             dijkstra_solver_filter.construct_DAG_shortest_path(destination)
             self.dagsp = dijkstra_solver_filter.dagsp    # And this is certainly a DAG
 
             # Return a random path from the DAG of shortest paths
-            path, node = [self.source], self.source
-            while node != destination:
-                next_node = random.choice([v for v in range(len(self.dagsp[node])) if self.dagsp[node][v]==1])
-                path.append(next_node)
-                node = next_node
+            path = _return_random_path(self.dagsp, self.source, destination)
 
             return path
 
