@@ -3,8 +3,15 @@ import sys
 
 
 ########################################################################################################################
-################################################ GRAPH INTERFACE : adjancency list/matrix  #############################
+################################################ GRAPH API : adjancency list/matrix  ###################################
 ########################################################################################################################
+
+def create_empty_graph(size, matrix_representation = True):
+     if matrix_representation:
+          return [[0 for j in range(size)] for i in range(size)]
+     else:
+          return {i:{j:0 for j in range(size)} for i in range(size)}
+     
 
 def has_arc(adjacency, u, v):
      if isinstance(adjacency, list):
@@ -41,6 +48,8 @@ def successors(adjacency, u):
           else:
                return [v for v in adjacency[u]]
           
+
+
 
 
 
