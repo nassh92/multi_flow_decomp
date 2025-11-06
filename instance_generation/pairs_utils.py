@@ -10,6 +10,7 @@ import itertools
 sys.path.append(os.getcwd())
 from instance_generation.maximum_flow_solver import EdmondKarpSolver
 from utils.shortest_path_solvers import DijkstraShortestPathsSolver
+from utils.graph_utils import in_degree, out_degree, sum_in_attributes, sum_out_attributes
 
 
 PAIRS_GENERATION_TYPES = {"degree", "capacity", "min_cut", "all"}
@@ -25,7 +26,17 @@ def process_weight_pairs(pairs, graph_mat, pairs_generation = "degree"):
         print("Error, pairs_generation unrecognized. ", pairs_generation)
         sys.exit()
     
-    if pairs_generation == "degree" or pairs_generation == "capacity":
+    if pairs_generation == "degree":
+        sources = [pair[0] for pair in pairs]
+        # All destinations
+        destinations = [pair[1] for pair in pairs]
+        # A dict containing the sources associated with their weight (outdegree)
+        weight_sources = {node:sum(graph_mat[node][:]) for node in sources}
+        # A dict containing the destinations associated with their weight (indegree)
+        weight_destinations = {j:sum(graph_mat[i][j] for i in range(len(graph_mat))) for j in destinations}
+        # Weights of the pairs
+        weight_pairs = [weight_sources[pair[0]]+weight_destinations[pair[1]] for pair in pairs]
+    elif pairs_generation == "capacity":
         # All sources
         sources = [pair[0] for pair in pairs]
         # All destinations

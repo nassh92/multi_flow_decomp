@@ -3,7 +3,7 @@ import numpy as np
 import sys
 from copy import deepcopy
 from shortest_path_solvers import DijkstraShortestPathsSolver
-from graph_utils import adjacency_union
+from graph_utils import adjacency_union, sum_out_attributes
 
 """
 offset because in the desaggregation heuristics, we add rows and columns to the matrix to represent the super source and the super destination
@@ -13,6 +13,9 @@ offset because in the desaggregation heuristics, we add rows and columns to the 
 #########################################################  SOLUTION LEVEL METRICS  #########################################################
 ############################################################################################################################################
 def flow_val_residue (flow_values, orirignal_flow_values):
+    """
+    Calculate the deviation error between the values of the decomposed flow and the values of the original flow.
+    """
     # Process the sum of the flow in the orignal multiflow
     multi_flow_val = sum(orirignal_flow_values)
     i = 0
@@ -35,6 +38,9 @@ def flow_val_residue (flow_values, orirignal_flow_values):
 
 
 def flow_residue (multi_flow_desag, unattributed_flow, original_aggregated_flow, offset = 0):
+    """
+    Calculate the residue error between the aggregated flow of the decomposed multiflow and the original aggregated flow.
+    """
     # Calculate the aggregated flow for the multi flow desagregation
     aggreg_flow = [[sum(multi_flow_desag[i][u][v] for i in range(len(multi_flow_desag)))+unattributed_flow[u][v]\
                                                                                             for v in range(len(multi_flow_desag[0])-offset)]\
@@ -51,6 +57,8 @@ def flow_residue (multi_flow_desag, unattributed_flow, original_aggregated_flow,
 
 
 def multi_flow_residue (multi_flow_desag, original_multi_flow, original_aggregated_flow, offset = 0):
+    """
+    Calculate the residue error between the decomposed multiflow and the original multiflow."""
     # Process the sum of the flow in all arcs
     if offset == 0:
         sum_orig_flow_agg = sum(sum(row) for row in original_aggregated_flow)
@@ -80,6 +88,9 @@ def multi_flow_residue (multi_flow_desag, original_multi_flow, original_aggregat
 
 #######################################################   ADDITIONAL METRICS  #######################################################
 def proportion_size_flow_support (multi_flow_desag, unattributed_flow, original_aggregated_flow, offset = 0):
+    """
+    Calculate the proportion between the size of the support of the aggregated flow of the decomposed multiflow and the size of the support of the original aggregated flow.
+    """
     # Calculate size of support in the original aggregated flow
     len_support_org_aggregated_flow = sum(original_aggregated_flow[u][v] > 0 for u in range(len(original_aggregated_flow)-offset)\
                                                                                 for v in range(len(original_aggregated_flow)-offset))
@@ -94,6 +105,10 @@ def proportion_size_flow_support (multi_flow_desag, unattributed_flow, original_
 
 #######################################################   SHORTEST PATH METRIC - FLOW arcs  #######################################################
 def flow_proportion_shortest_paths (multi_flow_desag, unattributed_flow, adj_mat, transport_times, pairs, offset = 0):
+    """
+    Calculate the proportion of flow that is on the union of the DAGs of shortest paths for each pairs 
+    in the desaggregated multiflow over the total flow associated to the desaggregated multiflow.
+    """
     # Calculate the aggregated flow for the multi flow desagregation
     aggreg_flow = [[sum(multi_flow_desag[i][u][v] for i in range(len(multi_flow_desag)))+unattributed_flow[u][v]\
                                                                                             for v in range(len(multi_flow_desag[0])-offset)]\
@@ -129,9 +144,12 @@ def flow_proportion_shortest_paths (multi_flow_desag, unattributed_flow, adj_mat
 #######################################################   Difference between constructed transition function   #######################################################
 #######################################################               and real transition function             #######################################################
 def transition_function_residue (original_transition_func, constructed_transition_func, original_aggregated_flow):
+    """
+    Calculate the residue error between the constructed transition function and the original transition function.
+    """
     # Sum of flow along all arcs of the graph
     sum_orig_flow_agg = sum(sum(row) for row in original_aggregated_flow)
-    # Process the sum of the difference between the two transition function
+    # Process the sum of the difference between the two transition functions (the constructed one and the original one)
     sum_diff_flow = sum(sum(abs(original_transition_func[arc][succ_arc] - constructed_transition_func[arc][succ_arc]) 
                                                                             for succ_arc in constructed_transition_func[arc]) 
                                                                                 for arc in constructed_transition_func)
@@ -147,6 +165,9 @@ def instance_flow_proportion_shortest_paths (adj_mat,
                                              original_aggregated_flow, 
                                              transport_times, 
                                              pairs):
+    """
+    Calculate the proportion of flow that is on the union of the DAGs of shortest paths for each pairs over the total flow.
+    """
     # Calculate sum of total flow
     sum_flow_agg = sum(sum(row) for row in original_aggregated_flow)
     if sum_flow_agg == 0:

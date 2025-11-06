@@ -8,6 +8,8 @@ data/
 
 example_test_heursitics/
 
+organisation code/
+
 *.txt
 
 *.npy

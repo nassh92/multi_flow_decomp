@@ -5,7 +5,7 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from graph_utils import make_path_simple, create_isolated_nodes_graph, successors, predecessors
+from graph_utils import make_path_simple, create_isolated_nodes_graph, successors, predecessors, add_arc
 
 
 MODES = ["min_distance", "max_capacity"]
@@ -167,7 +167,7 @@ class DijkstraShortestPathsSolver:
             for u in predecessors_v:
                 if not self._filter_arc(u, v) and self._process_new_estimate(u, v) == self.path_estimates[v]:
                     # Pick the edge (u, v) in DAG if there is a shortest path from the source to v through u
-                    self.dagsp[u][v] = 1
+                    add_arc(self.dagsp, u, v)
                     # If u is not visited and different from s, mark it as visited and enqueue it for later exploration
                     if not self.visited[u]:
                         self.visited[u] = True

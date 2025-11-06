@@ -8,10 +8,26 @@ import sys
 
 def create_isolated_nodes_graph(size, matrix_representation = True):
      if matrix_representation:
-          return [[0 for j in range(size)] for i in range(size)]
+          return [[0 for v in range(size)] for u in range(size)]
      else:
-          return {i:[] for i in range(size)}
+          return {u:[] for u in range(size)}
      
+
+def get_nodes(adjacency):
+     if isinstance(adjacency, list):
+          return [u for u in range(len(adjacency))]
+     
+     elif isinstance(adjacency, dict):
+          return list(adjacency.keys())
+     
+
+def get_arcs(adjacency):
+     if isinstance(adjacency, list):
+          return [(u, v) for u in range(len(adjacency)) for v in range(len(adjacency)) if adjacency[u][v] == 1]
+     
+     elif isinstance(adjacency, dict):
+          return [(u, v) for u in adjacency for v in adjacency[u]]
+
 
 def has_arc(adjacency, u, v):
      if isinstance(adjacency, list):
@@ -34,7 +50,7 @@ def add_arc(adjacency, u, v):
                print("The node 'u' is not in the graph.")
                sys.exit()
           else:
-               adjacency
+               adjacency[u].append(v)
 
 
 def delete_arc(adjacency, u, v):
@@ -46,7 +62,7 @@ def delete_arc(adjacency, u, v):
                print("The node 'u' is not in the graph.")
                sys.exit()
           else:
-               del adjacency[u][v]
+               adjacency[u].remove(v)
 
 
 def successors(adjacency, u):
@@ -58,23 +74,42 @@ def successors(adjacency, u):
                print("The node 'u' is not in the graph.")
                sys.exit()
           else:
-               return [v for v in adjacency[u]]
+               return adjacency[u]          
           
 
 def predecessors(adjacency, v, predecessors_list = None):
      if predecessors_list is None:
+          predecessors_v = []
           if isinstance(adjacency, list):
                for u in range (len(adjacency)):
                     if adjacency[u][v] == 1:
-                         predecessors_list.append(u)
-          
+                         predecessors_v.append(u)
+
           elif isinstance(adjacency, dict):
                for u in adjacency:
                     if v in adjacency[u]:
-                         predecessors_list.append(u)
+                         predecessors_v.append(u)
+          return predecessors_v
      else:
           return predecessors_list[v]
+
+
+def out_degree(adjacency, u):
+     return len(successors(adjacency, u))
           
+
+def in_degree(adjacency, v, predecessors_list = None):
+     return len(predecessors(adjacency, v, predecessors_list = predecessors_list))
+
+
+def sum_out_attributes(arc_attribute_vals, adjacency, u):
+     successors_u_list = successors(adjacency, u)
+     return sum(arc_attribute_vals[u][v] for v in successors_u_list)
+
+
+def sum_in_attributes(arc_attribute_vals, adjacency, v, predecessors_list = None):
+     predecessors_v_list = predecessors(adjacency, v, predecessors_list = predecessors_list)
+     return sum(arc_attribute_vals[u][v] for u in predecessors_v_list)
 
 
 
@@ -82,10 +117,13 @@ def predecessors(adjacency, v, predecessors_list = None):
 ########################################### SOME FUNCTIONS FOR GRAPH ALGORITHMS ########################################
 ########################################################################################################################
 
-def construct_tree_bsf (adj_mat, source):
+def construct_tree_bsf (adjacency, 
+                        source,
+                        matrix_representation = True):
     # Initializations
-    tree = [[0 for _ in range(len(adj_mat))] for _ in range(len(adj_mat))]
-    visited = [False] * len(adj_mat)
+    tree = create_isolated_nodes_graph(len(adjacency), 
+                                       matrix_representation = matrix_representation)
+    visited = [False] * len(adjacency)
     visited[source] = True
     queue = [source]
 
@@ -95,19 +133,20 @@ def construct_tree_bsf (adj_mat, source):
          node = queue.pop(0)
 
          # Browse the successors of 'node' and treat them if they are unvisited
-         for succ in range(len(adj_mat)):
-              if adj_mat[node][succ] == 1 and not visited[succ]:
+         for succ in range(len(adjacency)):
+              if has_arc(adjacency, node, succ) and not visited[succ]:
                    visited[succ] = True
-                   tree[node][succ] = 1
+                   add_arc(tree, node, succ)
                    queue.append(succ)
     
     return tree
 
 
-def construct_anti_tree_bfs (adj_mat, destination):
+def construct_anti_tree_bfs (adjacency, destination, matrix_representation = True):
      # Initializations
-    anti_tree = [[0 for _ in range(len(adj_mat))] for _ in range(len(adj_mat))]
-    visited = [False] * len(adj_mat)
+    anti_tree = create_isolated_nodes_graph(len(adjacency), 
+                                            matrix_representation = matrix_representation)
+    visited = [False] * len(adjacency)
     visited[destination] = True
     queue = [destination]
 
@@ -117,10 +156,10 @@ def construct_anti_tree_bfs (adj_mat, destination):
          node = queue.pop(0)
          
          # Browse the successors of 'node' and treat them if they are unvisited
-         for pred in range(len(adj_mat)):
-             if adj_mat[pred][node] == 1 and not visited[pred]:
+         for pred in range(len(adjacency)):
+             if has_arc(adjacency, pred, node) and not visited[pred]:
                   visited[pred] = True
-                  anti_tree[pred][node] = 1
+                  add_arc(anti_tree, pred, node)
                   queue.append(pred)
 
     return anti_tree
@@ -133,16 +172,22 @@ def construct_anti_tree_bfs (adj_mat, destination):
      anti_tree = construct_anti_tree_bfs (adj_mat, destination)
      # Take the arcs found in the tree rooted in srouce and the antitree rooted in destination 
      dag_arc_shortest_path = construct_anti_tree_bfs (tree, destination)
-     return dag_arc_shortest_path"""
+     return dag_arc_shortest_path
+"""
 
 
-def adjacency_matrix_union (adj_mat1, adj_mat2):
-    adj_mat_inters = [[0 for _ in range(len(adj_mat1))] for _ in range(len(adj_mat1))]
-    for i in range(len(adj_mat1)):
-         for j in range(len(adj_mat1)):
-              if adj_mat1[i][j] == 1 or adj_mat2[i][j] == 1:
-                  adj_mat_inters[i][j] = 1
-    return adj_mat_inters
+def adjacency_union (adjacency1, 
+                     adjacency2,
+                     matrix_representation = True):
+    """
+    Returns the union of two graphs represented by their adjacency matrices/lists over
+    the same nodes.
+    """
+    arcs = set(get_arcs(adjacency1)) | set(get_arcs(adjacency2))
+    adj_inters = create_isolated_nodes_graph(len(adjacency1), 
+                                             matrix_representation = matrix_representation)
+    for arc in arcs: add_arc(adj_inters, arc[0], arc[1])
+    return adj_inters
 
 
 def make_path_simple (path):
