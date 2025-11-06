@@ -5,7 +5,7 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from graph_utils import make_path_simple, create_isolated_nodes_graph, successors, predecessors, add_arc
+from graph_utils import make_path_simple, create_isolated_nodes_graph, successors, predecessors, add_arc, has_arc
 
 
 MODES = ["min_distance", "max_capacity"]
@@ -64,7 +64,7 @@ class DijkstraShortestPathsSolver:
     
 
     def _process_new_estimate(self, node1, node2):
-        if self.adjacency[node1][node2] != 1:
+        if not has_arc(self.adjacency, node1, node2):
             print("Erreur dans la matrice d'adjacence.")
             sys.exit()
 
@@ -133,12 +133,12 @@ class DijkstraShortestPathsSolver:
             
             # Get successors of the current node u
             # successors(adjacency, u) 
-            successors = successors(self.adjacency, u)
+            successors_u_list = successors(self.adjacency, u)
 
             # Relax all edges (u, v) adjacent to u
-            for v in range(len(self.adjacency)):
+            for v in successors_u_list:
                 # Update the estimates of the edges (u, v) adjacent to u
-                if self.adjacency[u][v] == 1 and not self._filter_arc(u, v):
+                if not self._filter_arc(u, v):
                     new_estimate = self._process_new_estimate(u, v)
                     # Relax the edge (u, v)
                     if self._is_better_than(new_estimate, self.path_estimates[v]):

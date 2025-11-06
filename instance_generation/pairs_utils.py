@@ -17,7 +17,11 @@ PAIRS_GENERATION_TYPES = {"degree", "capacity", "min_cut", "all"}
 
 
 ###############################################################  Process the weights of the O/D pairs ################################################
-def process_weight_pairs(pairs, graph_mat, pairs_generation = "degree"):
+def process_weight_pairs(pairs, 
+                         adjacency, 
+                         arc_attribute_vals = None,
+                         predecessors_list = None,
+                         pairs_generation = "degree"):
     """
     "graph_mat" can contain the adjacency matrix or the capacity matrix if 'pairs_generation == "degree"' or 'pairs_generation == "capacity"'.
     If 'pairs_generation == "min_cut"', graph_mat contains both the adjacency matrix and the capacities.
@@ -27,24 +31,31 @@ def process_weight_pairs(pairs, graph_mat, pairs_generation = "degree"):
         sys.exit()
     
     if pairs_generation == "degree":
+        # All sources
         sources = [pair[0] for pair in pairs]
         # All destinations
         destinations = [pair[1] for pair in pairs]
         # A dict containing the sources associated with their weight (outdegree)
-        weight_sources = {node:sum(graph_mat[node][:]) for node in sources}
+        weight_sources = {node:out_degree(adjacency, node) for node in sources}
         # A dict containing the destinations associated with their weight (indegree)
-        weight_destinations = {j:sum(graph_mat[i][j] for i in range(len(graph_mat))) for j in destinations}
+        weight_destinations = {node:in_degree(adjacency, node) for node in destinations}
         # Weights of the pairs
         weight_pairs = [weight_sources[pair[0]]+weight_destinations[pair[1]] for pair in pairs]
+    
     elif pairs_generation == "capacity":
         # All sources
         sources = [pair[0] for pair in pairs]
         # All destinations
         destinations = [pair[1] for pair in pairs]
-        # A dict containing the sources associated with their weight (outdegree) 
-        weight_sources = {node:sum(graph_mat[node][:]) for node in sources}
+        # A dict containing the sources associated with their weight (outdegree)
+        weight_sources = {node:sum_out_attributes(arc_attribute_vals, 
+                                                  adjacency, 
+                                                  node) for node in sources}
         # A dict containing the destinations associated with their weight (indegree)
-        weight_destinations = {j:sum(graph_mat[i][j] for i in range(len(graph_mat))) for j in destinations}
+        weight_destinations = {node:sum_in_attributes(arc_attribute_vals, 
+                                                      adjacency, 
+                                                      node,
+                                                      predecessors_list = predecessors_list) for node in destinations}
         # Weights of the pairs
         weight_pairs = [weight_sources[pair[0]]+weight_destinations[pair[1]] for pair in pairs]
 
