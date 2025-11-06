@@ -13,6 +13,13 @@ def create_isolated_nodes_graph(size, matrix_representation = True):
           return {u:[] for u in range(size)}
      
 
+def init_arc_attribute_vals(size, init_val = 0, matrix_representation = True):
+     if matrix_representation:
+          return [[init_val for v in range(size)] for u in range(size)]
+     else:
+          return {u:dict() for u in range(size)}
+     
+
 def get_nodes(adjacency):
      if isinstance(adjacency, list):
           return [u for u in range(len(adjacency))]

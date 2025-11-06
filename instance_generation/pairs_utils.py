@@ -61,14 +61,20 @@ def process_weight_pairs(pairs,
 
     elif pairs_generation == "min_cut":
         # Fetch the relevant graphs and process the weights of the pairs as their associated minimum cut value (max flow between the pairs)   
-        adj_mat, capacities, transport_times, weight_pairs = graph_mat[0], graph_mat[1], graph_mat[2], []
+        capacities, transport_times, weight_pairs = arc_attribute_vals[0], arc_attribute_vals[1], []
         # Process the max flow between the source and destination of each pair in 'pairs'
         for (source, destination) in pairs:
-            sp_solver = DijkstraShortestPathsSolver(source, adj_mat, transport_times, mode = "min_distance")
+            sp_solver = DijkstraShortestPathsSolver(source, 
+                                                    adjacency, 
+                                                    transport_times, 
+                                                    mode = "min_distance")
             sp_solver.run_dijkstra()
             sp_solver.construct_DAG_shortest_path (destination)
             dagsp_capacities = [[capacities[i][j] if sp_solver.dagsp[i][j] == 1 else 0 for j in range(len(capacities))] for i in range(len(capacities))]
-            max_flow_solver = EdmondKarpSolver(sp_solver.dagsp, dagsp_capacities, source, destination)
+            max_flow_solver = EdmondKarpSolver(sp_solver.dagsp, 
+                                               dagsp_capacities, 
+                                               source, 
+                                               destination)
             weight_pairs.append(max_flow_solver.run_edmond_karp())
     
     else:

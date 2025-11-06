@@ -22,7 +22,9 @@ ARC_FILTERING_CRITERIAS = [None, "source_ndestination"]
 class DijkstraShortestPathsSolver:
 
     def __init__(self, source, adjacency, weights, 
-                 mode = "min_distance", matrix_representation = True, optional_infos = None):
+                 mode = "min_distance", 
+                 matrix_representation = True, 
+                 optional_infos = None):
         # The source, the adjacency matrix an the weight matrix
         self.source = source
         self.adjacency = adjacency
