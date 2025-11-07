@@ -20,7 +20,7 @@ from instance_generation.multi_flow_instances_generator import generate_multi_fl
 from msmd.multi_flow_desag_instance_utils import MultiFlowDesagInstance
 from instance_generation.pairs_utils import process_weight_pairs, generate_origin_destination_pairs_local
 from pre_process_data_osm.restrict_segments import show_duplicate_arcs_subgraph
-
+from utils.graph_utils import construct_predecessors_list
 
 
 ###############################################################################################
@@ -59,6 +59,21 @@ def return_transport_times_matrix(g, node_list):
 def return_network_matrices(g, car_size = 1, print_ = False):
     # Adjacency matric
     adj_mat = nx.to_numpy_array(g)
+    if print_: print("Matrix size ", len(adj_mat))
+    node_list = list(g.nodes)
+    if print_: print("Node list size ", len(node_list))
+    edge_list = list(g.edges)
+    if print_: print("Edge list size ", len(edge_list))
+    # Capacity matrix : capacity = (number of lanes * length) / typical size of a car
+    capacity_mat = return_capacity_matrix(g, node_list, car_size)
+    # Ideal times matrix = length / maxspeed
+    transport_times_mat = return_transport_times_matrix(g, node_list)
+    return adj_mat, capacity_mat, transport_times_mat, node_list, edge_list
+
+
+def return_network_adjacency_dicts(g, car_size = 1, print_ = False):
+    # Adjacency matrice
+    adj_dict = {node:list(successors_dict.keys()) for node, successors_dict in g.adjacency()}
     if print_: print("Matrix size ", len(adj_mat))
     node_list = list(g.nodes)
     if print_: print("Node list size ", len(node_list))
@@ -417,7 +432,8 @@ def pre_process_networkx(graph_path_file,
                          nb_max_draws_pairs = 10,
                          car_size = 1,
                          save_dir = None,
-                         generate_figure = None):
+                         generate_figure = None,
+                         matrix_representation = True):
     """
     Construct the instance
 
@@ -491,9 +507,14 @@ def pre_process_networkx(graph_path_file,
     
 
     print("----------------------------- Constructin the adjacency matrix ----------------------------------------")
-    adj_mat, capacity_mat, transport_times_mat, node_list, edge_list = return_network_matrices(g,
-                                                                                               car_size, 
-                                                                                               print_ = True)
+    if matrix_representation:
+        graph, capacities, transport_times, node_list, edge_list = return_network_matrices(g,
+                                                                                           car_size, 
+                                                                                           print_ = True)
+    else:
+        graph, capacities, transport_times, node_list, edge_list = return_network_matrices(g,
+                                                                                           car_size, 
+                                                                                           print_ = True)
     print("-------------------------------------------------------------------------------------------------------")
 
     # Retrieve the pairs after node deletion
@@ -502,8 +523,10 @@ def pre_process_networkx(graph_path_file,
               node_list.index(id_destination)) for id_source, id_destination in list_id_pairs]
 
     # Process the weights associated to the pairs
-    weight_pairs = process_weight_pairs(pairs,
-                                        capacity_mat, 
+    weight_pairs = process_weight_pairs(pairs, 
+                                        graph, 
+                                        arc_attribute_vals = capacities,
+                                        predecessors_list = construct_predecessors_list(graph),
                                         pairs_generation = "capacity")
 
     # Affichage
@@ -526,11 +549,11 @@ def pre_process_networkx(graph_path_file,
         fig.suptitle("Network after preprocessing.")
 
     # Construct and return the dict containing all the informations related to the generated instance (follwing the value of 'pairs_generation') 
-    return_dict = {"adj_mat":adj_mat,
+    return_dict = {"graph":graph,
                    "arcs":edge_list,
                    "nodes":node_list,
-                   "capacities":capacity_mat,
-                   "transport_times":transport_times_mat,
+                   "capacities":capacities,
+                   "transport_times":transport_times,
                    "pairs":pairs,
                    "weight_pairs":weight_pairs}
     return return_dict, g, list_interest_points

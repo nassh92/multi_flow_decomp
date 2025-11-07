@@ -22,7 +22,7 @@ from instance_generation.random_instance_generator import read_data, generate_ra
 
 from instance_generation.transition_function_utils import construct_transition_functions, update_transition_functions
 
-from utils.graph_utils import has_arc, delete_arc
+from utils.graph_utils import has_arc, delete_arc, create_isolated_nodes_graph, is_adjacency_matrix
 
 
 
@@ -35,7 +35,7 @@ def update_time (transport_times,
 
 
 
-def generate_multi_flow_instance(adjacency, 
+def generate_multi_flow_instance(graph, 
                                  capacities, 
                                  transport_times, 
                                  pairs, 
@@ -44,8 +44,8 @@ def generate_multi_flow_instance(adjacency,
                                  nb_it_print = None,
                                  pairs_generation = "capacity",
                                  weight_pairs = None,
-                                 return_transition_function = False,
-                                 matrix_representation = True):
+                                 predecessors_list = None,
+                                 return_transition_function = False):
     """
         Generate a multiflow from a given nework represented by its adjacency matrix, its capacities matrix and its traversal times matrix 
     """
@@ -56,20 +56,21 @@ def generate_multi_flow_instance(adjacency,
     # Process the weights associated to each pair
     if weight_pairs is None: 
         weight_pairs = process_weight_pairs(pairs, 
-                                            capacities, 
+                                            graph, 
+                                            arc_attribute_vals = capacities,
+                                            predecessors_list = predecessors_list, 
                                             pairs_generation = pairs_generation)
 
     # Initializations
     cpt_saturated, nb_it = 0, 0
     generated_flow_values = [0 for _ in range(len(pairs))]
-    if matrix_representation:
-        multi_flow = [[[0 for j in range(len(adjacency))] for i in range(len(adjacency))] for _ in range(len(pairs))]
-    else:
-        multi_flow = [{i:{j:0 for j in range(len(adjacency))} for i in range(len(adjacency))} for _ in range(len(pairs))]
+    multi_flow = [create_isolated_nodes_graph(len(graph), 
+                                              matrix_representation = is_adjacency_matrix(graph)) 
+                                                for _ in range(len(pairs))]
 
     # If 'return_transition_function' is True, construct the transition functions
     if return_transition_function:
-        trans_func, trans_from_sources, trans_to_destinations = construct_transition_functions(adjacency, 
+        trans_func, trans_from_sources, trans_to_destinations = construct_transition_functions(graph, 
                                                                                                pairs)
 
     # Loop until all paris are saturated
@@ -82,9 +83,10 @@ def generate_multi_flow_instance(adjacency,
 
         # Create a DijkstraShortestPathsSolver instance and solve it (by running the dijkstra algorithm) 
         dijkstra_solver = DijkstraShortestPathsSolver(source = source,
-                                                      adjacency = adjacency,
+                                                      graph = graph,
                                                       weights = transport_times, 
-                                                      mode = "min_distance")
+                                                      mode = "min_distance",
+                                                      optional_infos = {"predecessors_list":predecessors_list})
         dijkstra_solver.run_dijkstra()
         
         # For the selected pair, augment the flow along a path from the source of the pair to its destination if there is a path
@@ -116,7 +118,7 @@ def generate_multi_flow_instance(adjacency,
                 
                 # If the capacity of an arc of the path reaches 0, delete it from the graph
                 if capacities[u][v] == 0:  
-                    delete_arc(adjacency, u, v)
+                    delete_arc(graph, u, v)
                 else: # else update the transport time of this arc
                     update_time (transport_times, og_transport_times, capacities, og_capacities, (u, v))
             # Update the transition function if 'return_transition_function' is enabled
@@ -256,6 +258,7 @@ def construct_complete_multi_flow_instances(dir_save_name,
 
 
 
+###########################################  Just look up functions  ###########################################
 def read_transition_functions(dir_data_name, num_instance):
     data = np.load(os.path.join(dir_data_name, "multi_flow_instance_"+str(num_instance)+".npy"), allow_pickle = True).flat[0]
     transition_functions = data["transition_functions"]
@@ -324,7 +327,8 @@ def return_statistics(dir_data_name):
         statistics_transition_functions[num_instance] = elem
     
     return statistics_transition_functions
-    
+
+################################################################################################################################
 
 
 

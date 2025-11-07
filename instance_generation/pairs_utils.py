@@ -10,7 +10,7 @@ import itertools
 sys.path.append(os.getcwd())
 from instance_generation.maximum_flow_solver import EdmondKarpSolver
 from utils.shortest_path_solvers import DijkstraShortestPathsSolver
-from utils.graph_utils import in_degree, out_degree, sum_in_attributes, sum_out_attributes
+from utils.graph_utils import in_degree, out_degree, sum_in_attributes, sum_out_attributes, init_graph_arc_attribute_vals, get_arcs
 
 
 PAIRS_GENERATION_TYPES = {"degree", "capacity", "min_cut", "all"}
@@ -18,7 +18,7 @@ PAIRS_GENERATION_TYPES = {"degree", "capacity", "min_cut", "all"}
 
 ###############################################################  Process the weights of the O/D pairs ################################################
 def process_weight_pairs(pairs, 
-                         adjacency, 
+                         graph, 
                          arc_attribute_vals = None,
                          predecessors_list = None,
                          pairs_generation = "degree"):
@@ -36,9 +36,9 @@ def process_weight_pairs(pairs,
         # All destinations
         destinations = [pair[1] for pair in pairs]
         # A dict containing the sources associated with their weight (outdegree)
-        weight_sources = {node:out_degree(adjacency, node) for node in sources}
+        weight_sources = {node:out_degree(graph, node) for node in sources}
         # A dict containing the destinations associated with their weight (indegree)
-        weight_destinations = {node:in_degree(adjacency, node) for node in destinations}
+        weight_destinations = {node:in_degree(graph, node) for node in destinations}
         # Weights of the pairs
         weight_pairs = [weight_sources[pair[0]]+weight_destinations[pair[1]] for pair in pairs]
     
@@ -49,11 +49,11 @@ def process_weight_pairs(pairs,
         destinations = [pair[1] for pair in pairs]
         # A dict containing the sources associated with their weight (outdegree)
         weight_sources = {node:sum_out_attributes(arc_attribute_vals, 
-                                                  adjacency, 
+                                                  graph, 
                                                   node) for node in sources}
         # A dict containing the destinations associated with their weight (indegree)
         weight_destinations = {node:sum_in_attributes(arc_attribute_vals, 
-                                                      adjacency, 
+                                                      graph, 
                                                       node,
                                                       predecessors_list = predecessors_list) for node in destinations}
         # Weights of the pairs
@@ -65,12 +65,13 @@ def process_weight_pairs(pairs,
         # Process the max flow between the source and destination of each pair in 'pairs'
         for (source, destination) in pairs:
             sp_solver = DijkstraShortestPathsSolver(source, 
-                                                    adjacency, 
+                                                    graph, 
                                                     transport_times, 
                                                     mode = "min_distance")
             sp_solver.run_dijkstra()
             sp_solver.construct_DAG_shortest_path (destination)
-            dagsp_capacities = [[capacities[i][j] if sp_solver.dagsp[i][j] == 1 else 0 for j in range(len(capacities))] for i in range(len(capacities))]
+            dagsp_capacities = init_graph_arc_attribute_vals(sp_solver.dagsp)
+            for u, v in get_arcs(sp_solver.dagsp): dagsp_capacities[u][v] = capacities[u][v]
             max_flow_solver = EdmondKarpSolver(sp_solver.dagsp, 
                                                dagsp_capacities, 
                                                source, 

@@ -21,13 +21,13 @@ ARC_FILTERING_CRITERIAS = [None, "source_ndestination"]
 
 class DijkstraShortestPathsSolver:
 
-    def __init__(self, source, adjacency, weights, 
+    def __init__(self, source, graph, weights, 
                  mode = "min_distance", 
                  matrix_representation = True, 
                  optional_infos = None):
-        # The source, the adjacency matrix an the weight matrix
+        # The source, the graph matrix an the weight matrix
         self.source = source
-        self.adjacency = adjacency
+        self.graph = graph
         self.weights = weights
         self.matrix_representation = matrix_representation
 
@@ -46,11 +46,11 @@ class DijkstraShortestPathsSolver:
     def initialize(self):
         # The processed and unprocessed nodes 
         self.processed = set()
-        self.not_processed = set(range(len(self.adjacency)))
+        self.not_processed = set(range(len(self.graph)))
         # Initalize all paths estimates with infinity/0 and predecessors with None
         self.path_estimates = []
         self.predecessors = []
-        for _ in range(len(self.adjacency)):
+        for _ in range(len(self.graph)):
             self.path_estimates.append(float('inf') if self.mode == "min_distance" else 0 if self.mode == "max_capacity" else None) 
             self.predecessors.append(None)
         
@@ -66,7 +66,7 @@ class DijkstraShortestPathsSolver:
     
 
     def _process_new_estimate(self, node1, node2):
-        if not has_arc(self.adjacency, node1, node2):
+        if not has_arc(self.graph, node1, node2):
             print("Erreur dans la matrice d'adjacence.")
             sys.exit()
 
@@ -134,8 +134,8 @@ class DijkstraShortestPathsSolver:
             self.processed.add(u)
             
             # Get successors of the current node u
-            # successors(adjacency, u) 
-            successors_u_list = successors(self.adjacency, u)
+            # successors(graph, u) 
+            successors_u_list = successors(self.graph, u)
 
             # Relax all edges (u, v) adjacent to u
             for v in successors_u_list:
@@ -163,7 +163,7 @@ class DijkstraShortestPathsSolver:
             v = queue.pop(0)
 
             # Return the predecessors of node v
-            predecessors_v = predecessors(self.adjacency, v, self.predecessors_list)
+            predecessors_v = predecessors(self.graph, v, self.predecessors_list)
 
             # Check the predecessors of v for shortest paths to be included in the DAG and enqueue theme if not visited
             for u in predecessors_v:
@@ -184,8 +184,8 @@ class DijkstraShortestPathsSolver:
     def construct_DAG_shortest_path (self, destination):
         # Initializations
         self.destination = destination
-        self.visited = [False]*len(self.adjacency)
-        self.dagsp = create_isolated_nodes_graph(len(self.adjacency), 
+        self.visited = [False]*len(self.graph)
+        self.dagsp = create_isolated_nodes_graph(len(self.graph), 
                                                  matrix_representation = self.matrix_representation)
 
         # Find the DAG pf shortest paths
@@ -208,10 +208,10 @@ class DijkstraShortestPathsSolver:
         
         elif path_type == "random":
 
-            def _return_random_path(adjacency, source, destination):
+            def _return_random_path(graph, source, destination):
                 path, node = [source], source
                 while node != destination:
-                    next_node = random.choice(successors(adjacency, node))
+                    next_node = random.choice(successors(graph, node))
                     path.append(next_node)
                     node = next_node
                 return path
@@ -248,10 +248,10 @@ class DijkstraShortestPathsSolver:
             
             # Restrict this graph to only the shortest paths (in terms of number of arcs within the paths)
             # To do this construct a new dijkstra solver on the subgraph constructed on the precedent step
-            # Set the weight matrix of the solver as the adjacency matrix of the previously constructed subgraph
+            # Set the weight matrix of the solver as the graph matrix of the previously constructed subgraph
             # Call the dijkstra algorithm on this new solver and construct the DAG of shortest path out of it
             dijkstra_solver_filter = DijkstraShortestPathsSolver(source = self.source,
-                                                                 adjacency = self.dagsp,
+                                                                 graph = self.dagsp,
                                                                  weights = self.dagsp, 
                                                                  mode = "min_distance",
                                                                  matrix_representation = self.matrix_representation)

@@ -60,13 +60,13 @@ def generate_random_instance(nb_nodes, grid_size, r, nb_arcs, max_nb_draws_gen_g
         graph_mat = adj_mat if pairs_generation == "degree" else capacities if pairs_generation == "capacity" else None
         # Generate the weights and the pairs
         pairs = generate_origin_destination_pairs_local (nb_pairs, graph_mat, nb_max_draws = nb_max_draws_pairs)
-        weight_pairs = process_weight_pairs(pairs, graph_mat, pairs_generation = pairs_generation)
+        weight_pairs = process_weight_pairs(pairs, graph_mat, pairs_generation = pairs_generation) # optional
     
     elif pairs_generation == "min_cut":
         # Generate the pairs and the weights
         pairs = generate_origin_destination_pairs_global (nb_pairs, adj_mat, capacities, nb_max_draws = nb_max_draws_pairs,
                                                           transport_times = transport_times)
-        weight_pairs = process_weight_pairs(pairs, [adj_mat, capacities, transport_times], pairs_generation = pairs_generation)
+        weight_pairs = process_weight_pairs(pairs, [adj_mat, capacities, transport_times], pairs_generation = pairs_generation) # optional
 
     elif pairs_generation == "all":
         # Generate the pairs and the weights
@@ -76,6 +76,7 @@ def generate_random_instance(nb_nodes, grid_size, r, nb_arcs, max_nb_draws_gen_g
             pairs = generate_origin_destination_pairs_global (nb_pairs, adj_mat, capacities, nb_max_draws = nb_max_draws_pairs,
                                                               transport_times = transport_times)
         
+        # optional
         weight_pairs_degree = process_weight_pairs(pairs, adj_mat, pairs_generation = "degree")
         weight_pairs_capacity = process_weight_pairs(pairs, capacities, pairs_generation = "capacity")
         weight_pairs_mincut = process_weight_pairs(pairs, [adj_mat, capacities,  transport_times], pairs_generation = "min_cut")
@@ -87,6 +88,7 @@ def generate_random_instance(nb_nodes, grid_size, r, nb_arcs, max_nb_draws_gen_g
                    "capacities":capacities,
                    "transport_times":transport_times,
                    "pairs":pairs,
+                   # `weights_pairs` below is optional, it will be generated further down the line during multiflow generation
                    "weight_pairs":weight_pairs if pairs_generation != "all" else [weight_pairs_degree, weight_pairs_capacity, weight_pairs_mincut]}
     
     return return_dict
