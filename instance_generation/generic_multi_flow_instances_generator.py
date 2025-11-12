@@ -22,7 +22,7 @@ from instance_generation.random_instance_generator import read_data, generate_ra
 
 from instance_generation.transition_function_utils import construct_transition_functions, update_transition_functions
 
-from utils.graph_utils import has_arc, delete_arc, create_isolated_nodes_graph, is_adjacency_matrix
+from utils.graph_utils import has_arc, delete_arc, init_graph_arc_attribute_vals, is_adjacency_matrix
 
 
 
@@ -64,9 +64,7 @@ def generate_multi_flow_instance(graph,
     # Initializations
     cpt_saturated, nb_it = 0, 0
     generated_flow_values = [0 for _ in range(len(pairs))]
-    multi_flow = [create_isolated_nodes_graph(len(graph), 
-                                              matrix_representation = is_adjacency_matrix(graph)) 
-                                                for _ in range(len(pairs))]
+    multi_flow = [init_graph_arc_attribute_vals(graph, init_val = 0) for _ in range(len(pairs))]
 
     # If 'return_transition_function' is True, construct the transition functions
     if return_transition_function:

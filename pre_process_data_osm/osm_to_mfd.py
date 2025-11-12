@@ -16,11 +16,11 @@ from shapely.ops import linemerge, substring
 from math import radians, cos, sin, asin, sqrt
 
 sys.path.append(os.getcwd())
-from instance_generation.multi_flow_instances_generator import generate_multi_flow_instance
+from instance_generation.generic_multi_flow_instances_generator import generate_multi_flow_instance
 from msmd.multi_flow_desag_instance_utils import MultiFlowDesagInstance
 from instance_generation.pairs_utils import process_weight_pairs, generate_origin_destination_pairs_local
 from pre_process_data_osm.restrict_segments import show_duplicate_arcs_subgraph
-from utils.graph_utils import construct_predecessors_list
+from utils.graph_utils import construct_predecessors_list, init_graph_arc_attribute_vals, get_arcs
 
 
 ###############################################################################################
@@ -29,34 +29,30 @@ from utils.graph_utils import construct_predecessors_list
 ##
 ###############################################################################################
 
-def return_capacity_matrix(g, node_list, car_size):
+def return_capacities_data(nx_graph, graph, node_list, edge_list, car_size):
     min_capacity, max_capacity = float("inf"), 0
-    capacity_mat = [[0 for _ in range(len(node_list))] for _ in range(len(node_list))]
-    for i in range(len(node_list)):
-        for j in range(len(node_list)):
-            u, v = node_list[i], node_list[j]
-            if g.has_edge(u, v): 
-                capacity_mat[i][j] = math.ceil(g[u][v]["lanes"] * g[u][v]["length"] / car_size)
-                if capacity_mat[i][j] > 0 and min_capacity > capacity_mat[i][j]:
-                    min_capacity = capacity_mat[i][j]
-                if capacity_mat[i][j] > max_capacity:
-                    max_capacity = capacity_mat[i][j]
+    capacities_data = init_graph_arc_attribute_vals(graph)
+    for i, j in edge_list:
+        u, v = node_list[i], node_list[j]
+        capacities_data[i][j] = math.ceil(nx_graph[u][v]["lanes"] * nx_graph[u][v]["length"] / car_size)
+        if capacities_data[i][j] > 0 and min_capacity > capacities_data[i][j]:
+            min_capacity = capacities_data[i][j]
+        if capacities_data[i][j] > max_capacity:
+            max_capacity = capacities_data[i][j]
     print("Min capacity ", min_capacity)
     print("Max capacity ", max_capacity)
-    return capacity_mat
+    return capacities_data
 
 
-def return_transport_times_matrix(g, node_list):
-    transport_times_mat = [[float("inf") for _ in range(len(node_list))] for _ in range(len(node_list))]
-    for i in range(len(node_list)):
-        for j in range(len(node_list)):
-            if g.has_edge(node_list[i], node_list[j]):
-                u, v = node_list[i], node_list[j]
-                transport_times_mat[i][j] = g[u][v]["length"] / g[u][v]["maxspeed"]
-    return transport_times_mat
+def return_transport_times_data(nx_graph, graph, node_list, edge_list):
+    transport_times_data = init_graph_arc_attribute_vals(graph, init_val = float("inf"))
+    for i, j in edge_list:
+        u, v = node_list[i], node_list[j]
+        transport_times_data[i][j] = nx_graph[u][v]["length"] / nx_graph[u][v]["maxspeed"]
+    return transport_times_data
 
 
-def return_network_matrices(g, car_size = 1, print_ = False):
+"""def return_network_matrices(g, car_size = 1, print_ = False):
     # Adjacency matric
     adj_mat = nx.to_numpy_array(g)
     if print_: print("Matrix size ", len(adj_mat))
@@ -68,22 +64,26 @@ def return_network_matrices(g, car_size = 1, print_ = False):
     capacity_mat = return_capacity_matrix(g, node_list, car_size)
     # Ideal times matrix = length / maxspeed
     transport_times_mat = return_transport_times_matrix(g, node_list)
-    return adj_mat, capacity_mat, transport_times_mat, node_list, edge_list
+    return adj_mat, capacity_mat, transport_times_mat, node_list, edge_list"""
 
 
-def return_network_adjacency_dicts(g, car_size = 1, print_ = False):
+def return_network_data(nx_graph, car_size = 1, print_ = False, matrix_representation = True):
     # Adjacency matrice
-    adj_dict = {node:list(successors_dict.keys()) for node, successors_dict in g.adjacency()}
-    if print_: print("Matrix size ", len(adj_mat))
-    node_list = list(g.nodes)
+    if matrix_representation:
+        graph = nx.to_numpy_array(nx_graph).tolist()
+    else:
+        graph = {node:list(successors_dict.keys()) for node, successors_dict in nx_graph.adjacency()}
+    # Printing is enabled
+    if print_: print("Network size ", len(graph))
+    node_list = list(nx_graph.nodes)
     if print_: print("Node list size ", len(node_list))
-    edge_list = list(g.edges)
+    edge_list = [(node_list.index(u), node_list.index(v)) for u, v in nx_graph.edges]
     if print_: print("Edge list size ", len(edge_list))
     # Capacity matrix : capacity = (number of lanes * length) / typical size of a car
-    capacity_mat = return_capacity_matrix(g, node_list, car_size)
+    capacities_data = return_capacities_data(nx_graph, graph, node_list, edge_list, car_size)
     # Ideal times matrix = length / maxspeed
-    transport_times_mat = return_transport_times_matrix(g, node_list)
-    return adj_mat, capacity_mat, transport_times_mat, node_list, edge_list
+    transport_times_data = return_transport_times_data(nx_graph, graph, node_list, edge_list)
+    return graph, capacities_data, transport_times_data, node_list, edge_list
 
 
 
@@ -388,13 +388,13 @@ def return_augmented_interest_points(g, list_interest_points):
     return augmented_ls_point_of_interests
 
 
-def generate_origin_destination_pairs (g, nb_pairs, ls_IPs, nb_max_draws = 10):
+def generate_origin_destination_pairs (g, nb_pairs, ls_IPs, car_size = 1, nb_max_draws = 10):
     # get the node list
     IP_node_list = [interest_point["id"] for interest_point in ls_IPs]
     # The weights associated to a node being a source calculated as the outdegree capacity of the node
-    weight_sources = [sum(g[u][v]["capacity"] for v in list(g.nodes) if g.has_edge(u, v)) for u in IP_node_list]
+    weight_sources = [sum(g[u][v]["lanes"] * g[u][v]["length"] / car_size for v in list(g.nodes) if g.has_edge(u, v)) for u in IP_node_list]
     # The weights associated to a node being a destination calculated as the indegree capacity of the node
-    weight_destinations = [sum(g[u][v]["capacity"] for u in list(g.nodes) if g.has_edge(u, v)) for v in IP_node_list]
+    weight_destinations = [sum(g[u][v]["lanes"] * g[u][v]["length"] / car_size for u in list(g.nodes) if g.has_edge(u, v)) for v in IP_node_list]
     # Choose randomly 'nb_pairs' of source-destination pairs according to 'weight_sources' and 'weight_destinations'
     pairs, num_draw = [], 0
     while len(pairs) < nb_pairs and num_draw < nb_max_draws:
@@ -433,20 +433,21 @@ def pre_process_networkx(graph_path_file,
                          car_size = 1,
                          save_dir = None,
                          generate_figure = None,
-                         matrix_representation = True):
+                         matrix_representation = True,
+                         print_ = True):
     """
     Construct the instance
 
     """
     # Open the graph path file
     with open(graph_path_file, 'rb') as f:
-        g = pickle.load(f)
+        nx_graph = pickle.load(f)
 
     # Affichage
     if generate_figure is not None and generate_figure[0]:
         print("Figure generation - network before preprocessing.")
         fig, ax = ox.plot_graph(
-                                nx.MultiDiGraph(g),
+                                nx.MultiDiGraph(nx_graph),
                                 figsize=(60, 60),
                                 node_color="yellow",
                                 node_size=10,
@@ -462,33 +463,34 @@ def pre_process_networkx(graph_path_file,
         fig.suptitle("Network before preprocessing.")
     
     # Merge the attributes which are in the form of lists
-    aggregate_attributes(g)
+    aggregate_attributes(nx_graph)
 
     # Transform the multigraph to a graph instance by deleting the loop and filtering the parallel edges
-    g = multidigraph_to_digraph (g)
+    nx_graph = multidigraph_to_digraph (nx_graph)
 
     print("---------------Network size after aggregate attributes and MultiDiGraph to Digraph--------")
-    print("Number of nodes ", len(g.nodes))
-    print("Number of edges ", len(g.edges))
+    print("Number of nodes ", len(nx_graph.nodes))
+    print("Number of edges ", len(nx_graph.edges))
     print("------------------------------------------------------------------------------------------")
 
     # Load the interest points
     list_interest_points = load_interest_points (interset_points_file_path)
-    list_interest_points = return_augmented_interest_points(g, list_interest_points)
+    list_interest_points = return_augmented_interest_points(nx_graph, list_interest_points)
     
     # Construct the pairs and their associated weights
-    list_id_pairs = generate_origin_destination_pairs (g,
+    list_id_pairs = generate_origin_destination_pairs (nx_graph,
                                                        nb_pairs, 
                                                        list_interest_points, 
+                                                       car_size,
                                                        nb_max_draws = nb_max_draws_pairs)
     
     # Delete all the nodes which can't be reached from the source and from which the destination can't be reached
     interest_point_ids = {node["id"] for node in list_interest_points}
-    delete_non_reach_pairs_nodes(g, list_id_pairs, interest_point_ids)
+    delete_non_reach_pairs_nodes(nx_graph, list_id_pairs, interest_point_ids)
     
     print("---------------Network size after deleting non reachable from pairs ------------------")
-    print("Number of nodes ", len(g.nodes))
-    print("Number of edges ", len(g.edges))
+    print("Number of nodes ", len(nx_graph.nodes))
+    print("Number of edges ", len(nx_graph.edges))
     print("--------------------------------------------------------------------------------------")
     
     # To be done : Delete the roundabouts 
@@ -497,28 +499,24 @@ def pre_process_networkx(graph_path_file,
     nb_removed_nodes = float('inf')
     while nb_removed_nodes > 0:
         # Delete the waste nodes (intermediary 2 neighbours, and one neighbour)
-        nb_removed_nodes = delete_waste_nodes(g, interest_point_ids)
+        nb_removed_nodes = delete_waste_nodes(nx_graph, interest_point_ids)
         print("Nb removed nodes ", nb_removed_nodes)
 
     print("------------------------- Network size after deleting waste nodes -------------------")
-    print("Number of nodes ", len(g.nodes))
-    print("Number of edges ", len(g.edges))
+    print("Number of nodes ", len(nx_graph.nodes))
+    print("Number of edges ", len(nx_graph.edges))
     print("--------------------------------------------------------------------------------------")
-    
+
 
     print("----------------------------- Constructin the adjacency matrix ----------------------------------------")
-    if matrix_representation:
-        graph, capacities, transport_times, node_list, edge_list = return_network_matrices(g,
-                                                                                           car_size, 
-                                                                                           print_ = True)
-    else:
-        graph, capacities, transport_times, node_list, edge_list = return_network_matrices(g,
-                                                                                           car_size, 
-                                                                                           print_ = True)
+    graph, capacities, transport_times, node_list, edge_list = return_network_data(nx_graph,
+                                                                                   car_size, 
+                                                                                   print_ = print_,
+                                                                                   matrix_representation = matrix_representation)
     print("-------------------------------------------------------------------------------------------------------")
 
     # Retrieve the pairs after node deletion
-    node_list = list(g.nodes)
+    node_list = list(nx_graph.nodes)
     pairs = [(node_list.index(id_source), 
               node_list.index(id_destination)) for id_source, id_destination in list_id_pairs]
 
@@ -533,7 +531,7 @@ def pre_process_networkx(graph_path_file,
     if generate_figure is not None and generate_figure[1]:
         print("Figure generation - network after preprocessing.")
         fig, ax = ox.plot_graph(
-                                nx.MultiDiGraph(g),
+                                nx.MultiDiGraph(nx_graph),
                                 figsize=(60, 60),
                                 node_color="yellow",
                                 node_size=10,
@@ -556,7 +554,45 @@ def pre_process_networkx(graph_path_file,
                    "transport_times":transport_times,
                    "pairs":pairs,
                    "weight_pairs":weight_pairs}
-    return return_dict, g, list_interest_points
+    return return_dict, nx_graph, list_interest_points
+
+
+
+def fetch_ajust_ncorrect_flow_network_data(graph,
+                                      raw_transport_times, 
+                                      all_pairs, 
+                                      all_desired_flow_values,
+                                      return_multi_flow_dict):
+    # Fetch the data
+    pairs, flow_values, multi_flow = [], [], []
+    for i in range(len(all_desired_flow_values)):
+        if return_multi_flow_dict["flow_values"][i] > 0:
+            pairs.append(all_pairs[i])
+            flow_values.append(return_multi_flow_dict["flow_values"][i])
+            multi_flow.append(return_multi_flow_dict["multi_flow"][i])
+    # Ajust/correct Data
+    arcs_graph = get_arcs(graph)
+    aggregated_flow = init_graph_arc_attribute_vals(graph)
+    for u, v in arcs_graph: 
+        aggregated_flow[u][v] = sum(multi_flow[i][u][v] for i in range(len(multi_flow)))
+    corr_graph = deepcopy(graph)
+    for u, v in arcs_graph:
+        corr_graph[u][v] = graph[u][v] if aggregated_flow[u][v] > 0 else 0
+    transport_times = deepcopy(raw_transport_times)
+    for u, v in arcs_graph:
+        corr_graph[u][v] = raw_transport_times[u][v] if aggregated_flow[u][v] > 0 else float("inf") 
+    ls_transition_function = return_multi_flow_dict["transition_functions"]
+    # Return values
+    return_dict_ajusted_data = {}
+    return_dict_ajusted_data["corr_graph"] = corr_graph
+    return_dict_ajusted_data["multi_flow"] = multi_flow
+    return_dict_ajusted_data["aggregated_flow"] = aggregated_flow
+    return_dict_ajusted_data["transport_times"] = transport_times
+    return_dict_ajusted_data["pairs"] = pairs
+    return_dict_ajusted_data["flow_values"] = flow_values
+    return_dict_ajusted_data["ls_transition_function"] = ls_transition_function
+    return return_dict_ajusted_data
+
 
 
 def construct_real_instances (graph_nx_path_file, 
@@ -572,6 +608,7 @@ def construct_real_instances (graph_nx_path_file,
                               nb_max_draws_pairs = 10,
                               nb_it_print = None,
                               save_dir = None,
+                              matrix_representation = True,
                               generate_figure = None):
     # The file names associated to the the folder 'MI' containing the structural data (the arc, the capacities and the transport times)
     return_dict, _, _ = pre_process_networkx(graph_nx_path_file, 
@@ -580,9 +617,10 @@ def construct_real_instances (graph_nx_path_file,
                                              nb_max_draws_pairs = nb_max_draws_pairs,
                                              car_size = car_size,
                                              save_dir = save_dir,
+                                             matrix_representation = matrix_representation,
                                              generate_figure = generate_figure)
     
-    adj_mat = return_dict["adj_mat"]
+    graph = return_dict["graph"]
     capacities = return_dict["capacities"]
     raw_transport_times = return_dict["transport_times"]
     all_pairs = return_dict["pairs"]
@@ -601,7 +639,7 @@ def construct_real_instances (graph_nx_path_file,
         # Some printing
         print("Treating instances numero ", num_instance)
         # Generation of the multiflow
-        return_multi_flow_dict = generate_multi_flow_instance(deepcopy(adj_mat), 
+        return_multi_flow_dict = generate_multi_flow_instance(deepcopy(graph), 
                                                               deepcopy(capacities), 
                                                               deepcopy(raw_transport_times), 
                                                               deepcopy(all_pairs), 
@@ -609,37 +647,31 @@ def construct_real_instances (graph_nx_path_file,
                                                               min_fl = min_fl, 
                                                               nb_it_print = nb_it_print,
                                                               weight_pairs = deepcopy(weight_pairs),
-                                                              pairs_generation = None,
                                                               return_transition_function = True)
-        # Fetch the data
-        pairs, flow_values, multi_flow = [], [], []
-        for i in range(len(all_desired_flow_values)):
-            if return_multi_flow_dict["flow_values"][i] > 0:
-                pairs.append(all_pairs[i])
-                flow_values.append(return_multi_flow_dict["flow_values"][i])
-                multi_flow.append(return_multi_flow_dict["multi_flow"][i])
-        # Fetch the data
-        aggregated_flow = [[sum(multi_flow[i][u][v] for i in range(len(multi_flow))) for v in range(len(multi_flow[0]))] for u in range(len(multi_flow[0]))]
-        corr_adj_mat = [[adj_mat[i][j] if aggregated_flow[i][j] > 0 else 0 for j in range(len(adj_mat))] for i in range(len(adj_mat))]
-        transport_times = [[raw_transport_times[i][j] if aggregated_flow[i][j] > 0 else float("inf") for j in range(len(raw_transport_times))]\
-                                                                                                        for i in range(len(raw_transport_times))]
-        ls_transition_function = return_multi_flow_dict["transition_functions"]
+        
+        # Correct/ajust the network data after flow generation
+        return_dict_ajusted_data = fetch_ajust_ncorrect_flow_network_data(graph,
+                                                                     raw_transport_times, 
+                                                                     all_pairs, 
+                                                                     all_desired_flow_values,
+                                                                     return_multi_flow_dict)
+
         # Construct mfd_instance
-        mfd_instance = MultiFlowDesagInstance(deepcopy(corr_adj_mat), 
-                                            deepcopy(aggregated_flow),
-                                            deepcopy(transport_times), 
-                                            deepcopy(pairs), 
-                                            deepcopy(flow_values), 
-                                            deepcopy(ls_transition_function),
+        mfd_instance = MultiFlowDesagInstance(deepcopy(return_dict_ajusted_data["corr_graph"]), 
+                                            deepcopy(return_dict_ajusted_data["aggregated_flow"]),
+                                            deepcopy(return_dict_ajusted_data["transport_times"]), 
+                                            deepcopy(return_dict_ajusted_data["pairs"]), 
+                                            deepcopy(return_dict_ajusted_data["flow_values"]), 
+                                            deepcopy(return_dict_ajusted_data["ls_transition_function"]),
                                             update_transport_time = True,
                                             update_transition_functions = True)
         # Saving the file
         np.save(os.path.join(dir_save_name_multiflow, 
                              "multi_flow_instance_"+str(num_instance)), 
-                {"pairs":deepcopy(pairs),
-                 "flow_values":deepcopy(flow_values),
-                 "multi_flow":multi_flow})
-        dict_instances[(num_instance, True, True)] = (mfd_instance, multi_flow)
+                {"pairs":deepcopy(return_dict_ajusted_data["pairs"]),
+                 "flow_values":deepcopy(return_dict_ajusted_data["flow_values"]),
+                 "multi_flow":return_dict_ajusted_data["multi_flow"]})
+        dict_instances[(num_instance, True, True)] = (mfd_instance, return_dict_ajusted_data["multi_flow"])
     # Save mfd_instances
     np.save(os.path.join(dir_save_name_mfd, 
                          "data_instances"), 
@@ -667,11 +699,11 @@ def main():
                                 generate_figure = [True, True])
     
     elif test_name == "lieusaint":
-        construct_real_instances (graph_nx_path_file = "data/original_graphs/lieusaint.gpickle", 
-                                interest_points_file_path = "data/pre_processed/LieuSaint/points_interet.txt",
-                                dir_save_name_graph = "data/pre_processed/LieuSaint/",
-                                dir_save_name_multiflow = "data/pre_processed/LieuSaint/multi_flow_instances/",
-                                dir_save_name_mfd = "data/pre_processed/LieuSaint/",
+        construct_real_instances (graph_nx_path_file = "data/real_data/original_graphs/lieusaint.gpickle", 
+                                interest_points_file_path = "data/real_data/pre_processed/LieuSaint/points_interet.txt",
+                                dir_save_name_graph = "data/real_data/pre_processed/LieuSaint/",
+                                dir_save_name_multiflow = "data/real_data/pre_processed/LieuSaint/multi_flow_instances/",
+                                dir_save_name_mfd = "data/real_data/pre_processed/LieuSaint/",
                                 nb_instances = 100,
                                 nb_pairs = 15,
                                 suffix_fname = "lieusaint",
@@ -679,7 +711,8 @@ def main():
                                 min_fl = 1,
                                 nb_max_draws_pairs = 300,
                                 nb_it_print = None,
-                                save_dir = "data/pre_processed/LieuSaint/",
+                                save_dir = "data/real_data/pre_processed/LieuSaint/",
+                                matrix_representation = False,
                                 generate_figure = [True, True])
 
 if __name__ == "__main__":

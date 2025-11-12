@@ -5,7 +5,7 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from graph_utils import make_path_simple, create_isolated_nodes_graph, successors, predecessors, add_arc, has_arc
+from utils.graph_utils import make_path_simple, create_isolated_nodes_graph, successors, predecessors, add_arc, has_arc
 
 
 MODES = ["min_distance", "max_capacity"]
