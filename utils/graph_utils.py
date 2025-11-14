@@ -18,7 +18,7 @@ def is_adjacency_matrix(graph):
      elif isinstance(graph, dict):
           return False
      else:
-          print('Not recognize.')
+          print('Adjacency not recognize.')
           sys.exit()
 
 
@@ -27,7 +27,7 @@ def init_graph_arc_attribute_vals(graph, init_val = 0):
           return [[init_val for v in range(len(graph))]
                               for u in range(len(graph))]
      elif isinstance(graph, dict):
-          return {u:{v:init_val for v in successors(graph, u)} for u in range(len(graph))}
+          return {u:{v:init_val for v in successors(graph, u)} for u in graph}
      
 
 def get_nodes(graph):
@@ -52,6 +52,7 @@ def has_arc(graph, u, v):
 
      elif isinstance(graph, dict):
           if u not in graph:
+               print("Func - has_arc")
                print("The node 'u' is not in the graph.")
                sys.exit()
           else:
@@ -64,6 +65,7 @@ def add_arc(graph, u, v):
      
      elif isinstance(graph, dict):
           if u not in graph:
+               print("Func - add_arc")
                print("The node 'u' is not in the graph.")
                sys.exit()
           else:
@@ -76,6 +78,7 @@ def delete_arc(graph, u, v):
      
      elif isinstance(graph, dict):
           if u not in graph:
+               print("Func - delete_arc")
                print("The node 'u' is not in the graph.")
                sys.exit()
           else:
@@ -88,6 +91,7 @@ def successors(graph, u):
      
      elif isinstance(graph, dict):
           if u not in graph:
+               print("Func - successors")
                print("The node 'u' is not in the graph.")
                sys.exit()
           else:

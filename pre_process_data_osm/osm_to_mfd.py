@@ -20,7 +20,7 @@ from instance_generation.generic_multi_flow_instances_generator import generate_
 from msmd.multi_flow_desag_instance_utils import MultiFlowDesagInstance
 from instance_generation.pairs_utils import process_weight_pairs, generate_origin_destination_pairs_local
 from pre_process_data_osm.restrict_segments import show_duplicate_arcs_subgraph
-from utils.graph_utils import construct_predecessors_list, init_graph_arc_attribute_vals, get_arcs
+from utils.graph_utils import construct_predecessors_list, init_graph_arc_attribute_vals, get_arcs, delete_arc
 
 
 ###############################################################################################
@@ -68,21 +68,23 @@ def return_transport_times_data(nx_graph, graph, node_list, edge_list):
 
 
 def return_network_data(nx_graph, car_size = 1, print_ = False, matrix_representation = True):
+    node_list = list(nx_graph.nodes)
+    edge_list = [(node_list.index(u), node_list.index(v)) for u, v in nx_graph.edges]
     # Adjacency matrice
     if matrix_representation:
         graph = nx.to_numpy_array(nx_graph).tolist()
     else:
-        graph = {node:list(successors_dict.keys()) for node, successors_dict in nx_graph.adjacency()}
-    # Printing is enabled
-    if print_: print("Network size ", len(graph))
-    node_list = list(nx_graph.nodes)
-    if print_: print("Node list size ", len(node_list))
-    edge_list = [(node_list.index(u), node_list.index(v)) for u, v in nx_graph.edges]
-    if print_: print("Edge list size ", len(edge_list))
+        graph = {node_list.index(node):[node_list.index(succ_node) for succ_node in successors_dict.keys()] 
+                                                                        for node, successors_dict in nx_graph.adjacency()}
     # Capacity matrix : capacity = (number of lanes * length) / typical size of a car
     capacities_data = return_capacities_data(nx_graph, graph, node_list, edge_list, car_size)
     # Ideal times matrix = length / maxspeed
     transport_times_data = return_transport_times_data(nx_graph, graph, node_list, edge_list)
+
+    if print_: 
+        print("Network size ", len(graph))
+        print("Node list size ", len(node_list))
+        print("Edge list size ", len(edge_list))
     return graph, capacities_data, transport_times_data, node_list, edge_list
 
 
@@ -392,9 +394,9 @@ def generate_origin_destination_pairs (g, nb_pairs, ls_IPs, car_size = 1, nb_max
     # get the node list
     IP_node_list = [interest_point["id"] for interest_point in ls_IPs]
     # The weights associated to a node being a source calculated as the outdegree capacity of the node
-    weight_sources = [sum(g[u][v]["lanes"] * g[u][v]["length"] / car_size for v in list(g.nodes) if g.has_edge(u, v)) for u in IP_node_list]
+    weight_sources = [sum(math.ceil(g[u][v]["lanes"] * g[u][v]["length"] / car_size) for v in list(g.nodes) if g.has_edge(u, v)) for u in IP_node_list]
     # The weights associated to a node being a destination calculated as the indegree capacity of the node
-    weight_destinations = [sum(g[u][v]["lanes"] * g[u][v]["length"] / car_size for u in list(g.nodes) if g.has_edge(u, v)) for v in IP_node_list]
+    weight_destinations = [sum(math.ceil(g[u][v]["lanes"] * g[u][v]["length"]) / car_size for u in list(g.nodes) if g.has_edge(u, v)) for v in IP_node_list]
     # Choose randomly 'nb_pairs' of source-destination pairs according to 'weight_sources' and 'weight_destinations'
     pairs, num_draw = [], 0
     while len(pairs) < nb_pairs and num_draw < nb_max_draws:
@@ -577,10 +579,11 @@ def fetch_ajust_ncorrect_flow_network_data(graph,
         aggregated_flow[u][v] = sum(multi_flow[i][u][v] for i in range(len(multi_flow)))
     corr_graph = deepcopy(graph)
     for u, v in arcs_graph:
-        corr_graph[u][v] = graph[u][v] if aggregated_flow[u][v] > 0 else 0
+        if aggregated_flow[u][v] == 0:
+            delete_arc(corr_graph, u, v)
     transport_times = deepcopy(raw_transport_times)
     for u, v in arcs_graph:
-        corr_graph[u][v] = raw_transport_times[u][v] if aggregated_flow[u][v] > 0 else float("inf") 
+        raw_transport_times[u][v] = raw_transport_times[u][v] if aggregated_flow[u][v] > 0 else float("inf") 
     ls_transition_function = return_multi_flow_dict["transition_functions"]
     # Return values
     return_dict_ajusted_data = {}
@@ -681,21 +684,22 @@ def construct_real_instances (graph_nx_path_file,
 
 def main():
     test_names = {"versailles", "lieusaint", }
-    test_name = "lieusaint"
+    test_name = "versailles"
     if test_name == "versailles":
-        construct_real_instances (graph_nx_path_file = "data/original_graphs/versailles.gpickle", 
-                                interest_points_file_path = "data/pre_processed/Versailles/points_versailles.txt",
-                                dir_save_name_graph = "data/pre_processed/Versailles/",
-                                dir_save_name_multiflow = "data/pre_processed/Versailles/multi_flow_instances/",
-                                dir_save_name_mfd = "data/pre_processed/Versailles/",
-                                nb_instances = 5,
+        construct_real_instances (graph_nx_path_file = "data/real_data/original_graphs/versailles.gpickle", 
+                                interest_points_file_path = "data/real_data/pre_processed/Versailles/points_versailles.txt",
+                                dir_save_name_graph = "data/real_data/pre_processed/Versailles/",
+                                dir_save_name_multiflow = "data/real_data/pre_processed/Versailles/multi_flow_instances/",
+                                dir_save_name_mfd = "data/real_data/pre_processed/Versailles/",
+                                nb_instances = 100,
                                 nb_pairs = 15,
                                 suffix_fname = "versailles",
                                 car_size = 5,
                                 min_fl = 1,
                                 nb_max_draws_pairs = 300,
                                 nb_it_print = None,
-                                save_dir = "data/pre_processed/Versailles/",
+                                save_dir = "data/real_data/pre_processed/Versailles/",
+                                matrix_representation = False,
                                 generate_figure = [True, True])
     
     elif test_name == "lieusaint":

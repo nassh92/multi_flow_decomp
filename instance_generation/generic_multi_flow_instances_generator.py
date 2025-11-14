@@ -69,7 +69,8 @@ def generate_multi_flow_instance(graph,
     # If 'return_transition_function' is True, construct the transition functions
     if return_transition_function:
         trans_func, trans_from_sources, trans_to_destinations = construct_transition_functions(graph, 
-                                                                                               pairs)
+                                                                                               pairs,
+                                                                                               predecessors_list = predecessors_list)
 
     # Loop until all paris are saturated
     while cpt_saturated < len(pairs):

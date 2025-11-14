@@ -1,23 +1,27 @@
 import sys
+import os
+sys.path.append(os.getcwd())
+from utils.graph_utils import successors, get_arcs, predecessors, delete_arc
 
 
-def construct_transition_functions(adj_mat, pairs):
+def construct_transition_functions(graph, pairs, predecessors_list = None):
     """
         Construct the transition functions
     """
     # Initialize the transition function
-    transition_function = {(u, v):{(v,w):0 for w in range(len(adj_mat)) if adj_mat[v][w] == 1}
-                                                for u in range(len(adj_mat)) for v in range(len(adj_mat))}
+    transition_function = {(u, v):{(v,w):0 for w in successors(graph, v)}
+                                                for u, v in get_arcs(graph)}
     # The set of all sources
     sources = {pair[0] for pair in pairs}
     # The set of all destinations
     destinations = {pair[1] for pair in pairs}
 
     # Initialize the transition function from the source
-    transition_from_sources = {s:{(s,v):0 for v in range(len(adj_mat)) if adj_mat[s][v] == 1} for s in sources}
+    transition_from_sources = {s:{(s,v):0 for v in successors(graph, s)} for s in sources}
 
     # Initialize the transition function from the source
-    transition_to_destinations = {d:{(u,d):0 for u in range(len(adj_mat)) if adj_mat[u][d] == 1} for d in destinations}
+    transition_to_destinations = {d:{(u,d):0 for u in predecessors(graph, d, predecessors_list)} 
+                                                for d in destinations}
 
     return transition_function, transition_from_sources, transition_to_destinations
 
