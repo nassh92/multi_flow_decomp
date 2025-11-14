@@ -22,7 +22,7 @@ from instance_generation.random_instance_generator import read_data, generate_ra
 
 from instance_generation.transition_function_utils import construct_transition_functions, update_transition_functions
 
-from utils.graph_utils import has_arc, delete_arc, init_graph_arc_attribute_vals, is_adjacency_matrix
+from utils.graph_utils import has_arc, delete_arc, init_graph_arc_attribute_vals, is_adjacency_matrix, get_arcs
 
 
 
@@ -33,6 +33,42 @@ def update_time (transport_times,
     # Update the traversal time of 'arc' depending on its remaning capacity and its original traversal time 
     transport_times[arc[0]][arc[1]] = og_transport_times[arc[0]][arc[1]] * (og_capacities[arc[0]][arc[1]] / capacities[arc[0]][arc[1]])
 
+
+def fetch_ajust_ncorrect_flow_network_data(graph,
+                                      raw_transport_times, 
+                                      all_pairs, 
+                                      all_desired_flow_values,
+                                      return_multi_flow_dict):
+    # Fetch the data
+    pairs, flow_values, multi_flow = [], [], []
+    for i in range(len(all_desired_flow_values)):
+        if return_multi_flow_dict["flow_values"][i] > 0:
+            pairs.append(all_pairs[i])
+            flow_values.append(return_multi_flow_dict["flow_values"][i])
+            multi_flow.append(return_multi_flow_dict["multi_flow"][i])
+    # Ajust/correct Data
+    arcs_graph = get_arcs(graph)
+    aggregated_flow = init_graph_arc_attribute_vals(graph)
+    for u, v in arcs_graph: 
+        aggregated_flow[u][v] = sum(multi_flow[i][u][v] for i in range(len(multi_flow)))
+    corr_graph = deepcopy(graph)
+    for u, v in arcs_graph:
+        if aggregated_flow[u][v] == 0:
+            delete_arc(corr_graph, u, v)
+    transport_times = deepcopy(raw_transport_times)
+    for u, v in arcs_graph:
+        raw_transport_times[u][v] = raw_transport_times[u][v] if aggregated_flow[u][v] > 0 else float("inf") 
+    ls_transition_function = return_multi_flow_dict["transition_functions"]
+    # Return values
+    return_dict_ajusted_data = {}
+    return_dict_ajusted_data["corr_graph"] = corr_graph
+    return_dict_ajusted_data["multi_flow"] = multi_flow
+    return_dict_ajusted_data["aggregated_flow"] = aggregated_flow
+    return_dict_ajusted_data["transport_times"] = transport_times
+    return_dict_ajusted_data["pairs"] = pairs
+    return_dict_ajusted_data["flow_values"] = flow_values
+    return_dict_ajusted_data["ls_transition_function"] = ls_transition_function
+    return return_dict_ajusted_data
 
 
 def generate_multi_flow_instance(graph, 
