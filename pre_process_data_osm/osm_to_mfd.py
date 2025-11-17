@@ -34,7 +34,7 @@ def return_capacities_data(nx_graph, graph, node_list, edge_list, car_size):
     capacities_data = init_graph_arc_attribute_vals(graph)
     for i, j in edge_list:
         u, v = node_list[i], node_list[j]
-        capacities_data[i][j] = math.ceil(nx_graph[u][v]["lanes"] * nx_graph[u][v]["length"] / car_size)
+        capacities_data[i][j] = math.ceil(nx_graph[u][v]["lanes"] * nx_graph[u][v]["length"] * nx_graph[u][v]["maxspeed"] / car_size)
         #capacities_data[i][j] = 100
         if capacities_data[i][j] > 0 and min_capacity > capacities_data[i][j]:
             min_capacity = capacities_data[i][j]
@@ -636,6 +636,9 @@ def construct_real_instances (graph_nx_path_file,
                                             update_transport_time = True,
                                             update_transition_functions = True)
         
+        # Print flow values
+        print(return_dict_ajusted_data["flow_values"])
+
         # Saving the file
         np.save(os.path.join(dir_save_name_multiflow, 
                              "multi_flow_instance_"+str(num_instance)), 
@@ -683,7 +686,7 @@ def main():
                                 car_size = 5,
                                 min_fl = 1,
                                 nb_max_draws_pairs = 300,
-                                nb_it_print = 1,
+                                nb_it_print = None,
                                 save_dir = "data/real_data/pre_processed/LieuSaint/",
                                 matrix_representation = False,
                                 generate_figure = [True, True])

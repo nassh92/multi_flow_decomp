@@ -189,7 +189,6 @@ def generate_multi_flow_instance(graph,
     return_dict["flow_values"] = generated_flow_values
     if return_transition_function:
         return_dict["transition_functions"] = (trans_func, trans_from_sources, trans_to_destinations)
-    sys.exit()
     return return_dict
 
 
