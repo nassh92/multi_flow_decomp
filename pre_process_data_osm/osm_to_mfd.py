@@ -35,6 +35,7 @@ def return_capacities_data(nx_graph, graph, node_list, edge_list, car_size):
     for i, j in edge_list:
         u, v = node_list[i], node_list[j]
         capacities_data[i][j] = math.ceil(nx_graph[u][v]["lanes"] * nx_graph[u][v]["length"] / car_size)
+        #capacities_data[i][j] = 100
         if capacities_data[i][j] > 0 and min_capacity > capacities_data[i][j]:
             min_capacity = capacities_data[i][j]
         if capacities_data[i][j] > max_capacity:
@@ -85,6 +86,10 @@ def return_network_data(nx_graph, car_size = 1, print_ = False, matrix_represent
         print("Network size ", len(graph))
         print("Node list size ", len(node_list))
         print("Edge list size ", len(edge_list))
+        nb_sim = 0
+        for u, v in edge_list:
+            if (v, u) in edge_list: nb_sim += 1
+        print("Number of symetric edges ", nb_sim/2)
     return graph, capacities_data, transport_times_data, node_list, edge_list
 
 
@@ -594,6 +599,7 @@ def construct_real_instances (graph_nx_path_file,
         all_desired_flow_values = [int(float(str_fl)) for str_fl in return_dict["desired_flow_values"]]
     else:
         all_desired_flow_values = [float("inf") for _ in range(nb_pairs)]
+    
     np.save(os.path.join(dir_save_name_graph, 
                          "real_instance_"+suffix_fname), 
                          return_dict)
@@ -618,7 +624,6 @@ def construct_real_instances (graph_nx_path_file,
         return_dict_ajusted_data = fetch_ajust_ncorrect_flow_network_data(graph,
                                                                      raw_transport_times, 
                                                                      all_pairs, 
-                                                                     all_desired_flow_values,
                                                                      return_multi_flow_dict)
 
         # Construct mfd_instance
@@ -630,6 +635,7 @@ def construct_real_instances (graph_nx_path_file,
                                             deepcopy(return_dict_ajusted_data["ls_transition_function"]),
                                             update_transport_time = True,
                                             update_transition_functions = True)
+        
         # Saving the file
         np.save(os.path.join(dir_save_name_multiflow, 
                              "multi_flow_instance_"+str(num_instance)), 
@@ -637,6 +643,7 @@ def construct_real_instances (graph_nx_path_file,
                  "flow_values":deepcopy(return_dict_ajusted_data["flow_values"]),
                  "multi_flow":return_dict_ajusted_data["multi_flow"]})
         dict_instances[(num_instance, True, True)] = (mfd_instance, return_dict_ajusted_data["multi_flow"])
+    
     # Save mfd_instances
     np.save(os.path.join(dir_save_name_mfd, 
                          "data_instances"), 
@@ -676,7 +683,7 @@ def main():
                                 car_size = 5,
                                 min_fl = 1,
                                 nb_max_draws_pairs = 300,
-                                nb_it_print = None,
+                                nb_it_print = 1,
                                 save_dir = "data/real_data/pre_processed/LieuSaint/",
                                 matrix_representation = False,
                                 generate_figure = [True, True])

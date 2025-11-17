@@ -36,12 +36,11 @@ def update_time (transport_times,
 
 def fetch_ajust_ncorrect_flow_network_data(graph,
                                       raw_transport_times, 
-                                      all_pairs, 
-                                      all_desired_flow_values,
+                                      all_pairs,
                                       return_multi_flow_dict):
     # Fetch the data
     pairs, flow_values, multi_flow = [], [], []
-    for i in range(len(all_desired_flow_values)):
+    for i in range(len(all_pairs)):
         if return_multi_flow_dict["flow_values"][i] > 0:
             pairs.append(all_pairs[i])
             flow_values.append(return_multi_flow_dict["flow_values"][i])
@@ -190,6 +189,7 @@ def generate_multi_flow_instance(graph,
     return_dict["flow_values"] = generated_flow_values
     if return_transition_function:
         return_dict["transition_functions"] = (trans_func, trans_from_sources, trans_to_destinations)
+    sys.exit()
     return return_dict
 
 
