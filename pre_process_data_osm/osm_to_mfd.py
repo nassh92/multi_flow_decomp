@@ -34,7 +34,7 @@ def return_capacities_data(nx_graph, graph, node_list, edge_list, car_size):
     capacities_data = init_graph_arc_attribute_vals(graph)
     for i, j in edge_list:
         u, v = node_list[i], node_list[j]
-        capacities_data[i][j] = math.ceil(nx_graph[u][v]["lanes"] * nx_graph[u][v]["length"] * nx_graph[u][v]["maxspeed"] / car_size)
+        capacities_data[i][j] = math.ceil(nx_graph[u][v]["lanes"] * nx_graph[u][v]["maxspeed"] * 10 / car_size) # Unit 100 cars/h
         #capacities_data[i][j] = 100
         if capacities_data[i][j] > 0 and min_capacity > capacities_data[i][j]:
             min_capacity = capacities_data[i][j]
@@ -49,7 +49,7 @@ def return_transport_times_data(nx_graph, graph, node_list, edge_list):
     transport_times_data = init_graph_arc_attribute_vals(graph, init_val = float("inf"))
     for i, j in edge_list:
         u, v = node_list[i], node_list[j]
-        transport_times_data[i][j] = nx_graph[u][v]["length"] / nx_graph[u][v]["maxspeed"]
+        transport_times_data[i][j] = nx_graph[u][v]["length"] / nx_graph[u][v]["maxspeed"] # Unit h/1000
     return transport_times_data
 
 
@@ -468,7 +468,7 @@ def pre_process_networkx(graph_path_file,
                                 filepath = save_dir+"/before_preprocessing.png"
                             )
         fig.suptitle("Network before preprocessing.")
-    
+
     # Merge the attributes which are in the form of lists
     aggregate_attributes(nx_graph)
 
@@ -620,12 +620,13 @@ def construct_real_instances (graph_nx_path_file,
                                                               weight_pairs = deepcopy(weight_pairs),
                                                               return_transition_function = True)
         
+        print("Number of pairs ", len(all_pairs))
         # Correct/ajust the network data after flow generation
         return_dict_ajusted_data = fetch_ajust_ncorrect_flow_network_data(graph,
                                                                      raw_transport_times, 
                                                                      all_pairs, 
                                                                      return_multi_flow_dict)
-
+        
         # Construct mfd_instance
         mfd_instance = MultiFlowDesagInstance(deepcopy(return_dict_ajusted_data["corr_graph"]), 
                                             deepcopy(return_dict_ajusted_data["aggregated_flow"]),

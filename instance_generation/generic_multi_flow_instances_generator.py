@@ -45,6 +45,8 @@ def fetch_ajust_ncorrect_flow_network_data(graph,
             pairs.append(all_pairs[i])
             flow_values.append(return_multi_flow_dict["flow_values"][i])
             multi_flow.append(return_multi_flow_dict["multi_flow"][i])
+        else:
+            print("Deleted pair ", all_pairs[i])
     # Ajust/correct Data
     arcs_graph = get_arcs(graph)
     aggregated_flow = init_graph_arc_attribute_vals(graph)
