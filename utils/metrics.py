@@ -1,9 +1,11 @@
 import math
 import numpy as np
 import sys
+import os
 from copy import deepcopy
-from shortest_path_solvers import DijkstraShortestPathsSolver
-from graph_utils import adjacency_union
+sys.path.append(os.getcwd())
+from utils.shortest_path_solvers import DijkstraShortestPathsSolver
+from utils.graph_utils import graph_union
 
 """
 offset because in the desaggregation heuristics, we add rows and columns to the matrix to represent the super source and the super destination
@@ -116,8 +118,8 @@ def flow_proportion_shortest_paths (multi_flow_desag, unattributed_flow, adj_mat
         dijkstra_solver = DijkstraShortestPathsSolver(source, t_adj_mat, t_transport_times, mode = "min_distance")
         dijkstra_solver.run_dijkstra()
         dijkstra_solver.construct_DAG_shortest_path(destination)
-        union_mat = deepcopy(dijkstra_solver.dagsp) if id_pair == 0 else adjacency_union(union_mat, 
-                                                                                         dijkstra_solver.dagsp)
+        union_mat = deepcopy(dijkstra_solver.dagsp) if id_pair == 0 else graph_union(union_mat, 
+                                                                                     dijkstra_solver.dagsp)
     
     # Process the ratio between the sum of flow on the intersection of the DAGs over the sum of the flow on the all the arcs of the graph
     sum_flow_agg_sp += sum(aggreg_flow[u][v] for u in range(len(t_adj_mat)) for v in range(len(t_adj_mat)) if union_mat[u][v] == 1)
@@ -164,8 +166,8 @@ def instance_flow_proportion_shortest_paths (adj_mat,
                                                       mode = "min_distance")
         dijkstra_solver.run_dijkstra()
         dijkstra_solver.construct_DAG_shortest_path(destination)
-        union_mat = deepcopy(dijkstra_solver.dagsp) if id_pair == 0 else adjacency_union(union_mat, 
-                                                                                         dijkstra_solver.dagsp)
+        union_mat = deepcopy(dijkstra_solver.dagsp) if id_pair == 0 else graph_union(union_mat, 
+                                                                                     dijkstra_solver.dagsp)
     
     # Process the ratio between the sum of flow on the intersection of the DAGs over the sum of the flow on the all the arcs of the graph
     sum_flow_agg_sp = sum(original_aggregated_flow[u][v] for u in range(len(adj_mat)) for v in range(len(adj_mat)) if union_mat[u][v] == 1)

@@ -2,7 +2,7 @@ import sys
 import os
 import numpy as np
 from copy import deepcopy
-
+import math
 sys.path.append(os.getcwd())
 from instance_generation.generic_multi_flow_instances_generator import generate_multi_flow_instance, fetch_ajust_ncorrect_flow_network_data
 from instance_generation.demand_generator import process_demand_weights_distribution, process_desired_flow_values
@@ -17,8 +17,8 @@ def construct_simon_instances(path_network_data,
                               dir_save_name,
                               start_time = 6,
                               end_time = 20,
+                              time_period = 25,
                               locs = (8, 12.5, 17),
-                              time_period_generation = 15,
                               min_fl = 1,
                               nb_it_print = None):
     # Fetch the graph data (empty network, structural properties) from the numpy file
@@ -33,7 +33,7 @@ def construct_simon_instances(path_network_data,
     dict_instances_max_flow = np.load(path_maximal_flow_val_data, allow_pickle = True).flat[0]
 
     # The time line
-    time_line = np.linspace(start_time, end_time, (end_time - start_time) * 60)
+    time_line = np.linspace(start_time, end_time, (end_time - start_time) * 100 + 1)
     weights_demand = process_demand_weights_distribution(time_line, locs = locs)
     
     # Generate the real instances
@@ -49,7 +49,8 @@ def construct_simon_instances(path_network_data,
         Generate data for each period
         """
         for ind_time in range(len(time_line)):
-            if ind_time % time_period_generation == 0:
+            time_diff = round((time_line[ind_time] - math.floor(time_line[ind_time])) * 100)
+            if time_diff % time_period == 0:
                 # Process the desired flow values
                 all_desired_flow_values = process_desired_flow_values(weights_demand[ind_time],
                                                                     maximal_congestion_rate = MAXIMAL_CONGESTION_RATE,
@@ -88,8 +89,8 @@ def main():
                               dir_save_name = "data/data_simon/instances/",
                               start_time = 6,
                               end_time = 20,
+                              time_period = 25,
                               locs = (8, 12.5, 17),
-                              time_period_generation = 15,
                               min_fl = 1,
                               nb_it_print = None)
 

@@ -8,10 +8,6 @@ import math
 Generate the peak demand in relation to the hour of the day
 """
 
-"""
-Generate the peak demand in relation to the hour of the day
-"""
-
 
 def process_demand_weights_distribution(time_periods,
                                 alphas = (3, 0, 3),
@@ -37,14 +33,15 @@ def process_desired_flow_values(weight_demand,
 
 if __name__ == "__main__":
     # Evaluate pdf on a grid
-    x = np.linspace(6, 20, 500)
+    x = np.linspace(6, 20, (20 - 6) * 60)
 
     # 
-    pdf_demand = process_demand_weights_distribution(x,
+    """pdf_demand = process_demand_weights_distribution(x,
                                             alphas = (3, 0, 3),
                                             locs = (8, 12.5, 17),
                                             scales = (1, 1, 1),
-                                            weights = (0.475, 0.05, 0.475))
+                                            weights = (0.475, 0.05, 0.475))"""
+    pdf_demand = process_demand_weights_distribution(x)
 
     # Plot
     plt.figure(figsize=(8, 4))

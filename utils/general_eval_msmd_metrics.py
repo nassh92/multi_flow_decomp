@@ -1,9 +1,12 @@
 import math
 import numpy as np
 import sys
+import os
 from copy import deepcopy
-from shortest_path_solvers import DijkstraShortestPathsSolver
-from graph_utils import adjacency_union, sum_out_attributes
+sys.path.append(os.getcwd())
+from utils.shortest_path_solvers import DijkstraShortestPathsSolver
+from utils.graph_utils import sum_out_attributes, get_arcs, graph_union, has_arc
+
 
 """
 offset because in the desaggregation heuristics, we add rows and columns to the matrix to represent the super source and the super destination
@@ -131,8 +134,8 @@ def flow_proportion_shortest_paths (multi_flow_desag, unattributed_flow, adj_mat
         dijkstra_solver = DijkstraShortestPathsSolver(source, t_adj_mat, t_transport_times, mode = "min_distance")
         dijkstra_solver.run_dijkstra()
         dijkstra_solver.construct_DAG_shortest_path(destination)
-        union_mat = deepcopy(dijkstra_solver.dagsp) if id_pair == 0 else adjacency_union(union_mat, 
-                                                                                         dijkstra_solver.dagsp)
+        union_mat = deepcopy(dijkstra_solver.dagsp) if id_pair == 0 else graph_union(union_mat, 
+                                                                                     dijkstra_solver.dagsp)
     
     # Process the ratio between the sum of flow on the intersection of the DAGs over the sum of the flow on the all the arcs of the graph
     sum_flow_agg_sp += sum(aggreg_flow[u][v] for u in range(len(t_adj_mat)) for v in range(len(t_adj_mat)) if union_mat[u][v] == 1)
@@ -164,12 +167,16 @@ def transition_function_residue (original_transition_func, constructed_transitio
 def instance_flow_proportion_shortest_paths (adj_mat,
                                              original_aggregated_flow, 
                                              transport_times, 
-                                             pairs):
+                                             pairs,
+                                             matrix_representation = True):
     """
     Calculate the proportion of flow that is on the union of the DAGs of shortest paths for each pairs over the total flow.
     """
+    # Get the arcs of the graph
+    arcs = get_arcs(adj_mat)
+
     # Calculate sum of total flow
-    sum_flow_agg = sum(sum(row) for row in original_aggregated_flow)
+    sum_flow_agg = sum(original_aggregated_flow[u][v] for u, v in arcs)
     if sum_flow_agg == 0:
         print("Will give a division by zero error.")
         return None
@@ -182,13 +189,15 @@ def instance_flow_proportion_shortest_paths (adj_mat,
         dijkstra_solver = DijkstraShortestPathsSolver(source, 
                                                       adj_mat, 
                                                       transport_times, 
-                                                      mode = "min_distance")
+                                                      mode = "min_distance",
+                                                      matrix_representation = matrix_representation)
         dijkstra_solver.run_dijkstra()
         dijkstra_solver.construct_DAG_shortest_path(destination)
-        union_mat = deepcopy(dijkstra_solver.dagsp) if id_pair == 0 else adjacency_union(union_mat, 
-                                                                                         dijkstra_solver.dagsp)
+        union_mat = deepcopy(dijkstra_solver.dagsp) if id_pair == 0 else graph_union (union_mat, 
+                                                                                      dijkstra_solver.dagsp,
+                                                                                      matrix_representation = matrix_representation)
     
     # Process the ratio between the sum of flow on the intersection of the DAGs over the sum of the flow on the all the arcs of the graph
-    sum_flow_agg_sp = sum(original_aggregated_flow[u][v] for u in range(len(adj_mat)) for v in range(len(adj_mat)) if union_mat[u][v] == 1)
+    sum_flow_agg_sp = sum(original_aggregated_flow[u][v] for u, v in arcs if has_arc(union_mat, u, v))
 
     return sum_flow_agg_sp/sum_flow_agg

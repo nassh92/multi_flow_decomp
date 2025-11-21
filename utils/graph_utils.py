@@ -115,6 +115,11 @@ def predecessors(graph, v, predecessors_list = None):
           return predecessors_list[v]
 
 
+def get_neighbours(graph, node, predecessors_list = None):
+     neighbours = set(successors(graph, node)) | set(predecessors(graph, node, predecessors_list = predecessors_list))
+     return neighbours
+
+
 def construct_predecessors_list(graph):
      predecessors_list = {}
      for v in get_nodes(graph): predecessors_list[v] = predecessors(graph, v) 
@@ -204,8 +209,8 @@ def construct_anti_tree_bfs (graph, destination, matrix_representation = True):
 
 
 def graph_union (graph1, 
-                     graph2,
-                     matrix_representation = True):
+                 graph2,
+                 matrix_representation = True):
     """
     Returns the union of two graphs represented by their graph matrices/lists over
     the same nodes.
