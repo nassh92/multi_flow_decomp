@@ -35,6 +35,7 @@ def construct_simon_instances(path_network_data,
     # The time line
     time_line = np.linspace(start_time, end_time, (end_time - start_time) * 100 + 1)
     weights_demand = process_demand_weights_distribution(time_line, locs = locs)
+    print("Number of instances ", len(dict_instances_max_flow))
     
     # Generate the real instances
     for num_instance, _, _ in dict_instances_max_flow:

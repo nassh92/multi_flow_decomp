@@ -500,8 +500,10 @@ def pre_process_networkx(graph_path_file,
     print("Number of edges ", len(nx_graph.edges))
     print("--------------------------------------------------------------------------------------")
     
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # To be done : Delete the roundabouts 
     # Method : use a datastructure which ranks the nodes by closeness
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     nb_removed_nodes = float('inf')
     while nb_removed_nodes > 0:
@@ -526,6 +528,9 @@ def pre_process_networkx(graph_path_file,
     node_list = list(nx_graph.nodes)
     pairs = [(node_list.index(id_source), 
               node_list.index(id_destination)) for id_source, id_destination in list_id_pairs]
+    
+    # Process the geometry attributes after node deletion
+    geometries = [nx_graph[node_list[i]][node_list[j]]["geometry"] for i, j in edge_list]
 
     # Process the weights associated to the pairs
     weight_pairs = process_weight_pairs(pairs, 
@@ -557,6 +562,7 @@ def pre_process_networkx(graph_path_file,
     return_dict = {"graph":graph,
                    "arcs":edge_list,
                    "nodes":node_list,
+                   "geometries":geometries,
                    "capacities":capacities,
                    "transport_times":transport_times,
                    "pairs":pairs,
