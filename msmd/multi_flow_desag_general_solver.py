@@ -14,6 +14,7 @@ from msmd.multi_flow_desag_solver_utils import (PAIRS_CRITERIAS,
                                  PathFilterer)
 from msmd.path_selectors import RandomPathSelector
 from msmd.subgraph_constructors import SubGraphBestPathsConstructor
+from utils.graph_utils import successors, get_arcs
 
 
 
@@ -65,11 +66,8 @@ class MultiFlowDesagSolver():
 
         # Set the newly formed transition function
         if construct_trans_function:
-            self.constructed_transition_function = {(u, v):{(v,w):0 for w in range(len(self.mfd_instance.adj_mat)) 
-                                                                        if self.mfd_instance.adj_mat[v][w] == 1}
-                                                                            for u in range(len(self.mfd_instance.adj_mat)) 
-                                                                                for v in range(len(self.mfd_instance.adj_mat)) 
-                                                                                    if self.mfd_instance.adj_mat[u][v] == 1}
+            self.constructed_transition_function = {(u, v):{(v, w):0 for w in successors(self.mfd_instance.adj_mat, v)}
+                                                                        for u, v in get_arcs(self.mfd_instance.adj_mat)}
         
         else:
             self.constructed_transition_function = None

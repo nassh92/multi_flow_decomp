@@ -1,26 +1,30 @@
 import sys
+import os
 from copy import deepcopy
+sys.path.append(os.getcwd())
 from utils.pre_process_utils import read_ntreat_instance
+from utils.graph_utils import successors, predecessors
 
 
 ##############################################  Functions  ############################################## 
-def init_random_transition_matrices(mfd_instance):
-    mfd_instance.original_transition_function = {(u, v):{(v,w):mfd_instance.adj_mat[v][w] 
-                                                                    for w in range(len(mfd_instance.adj_mat))}
-                                                                        for u in range(len(mfd_instance.adj_mat)) 
-                                                                            for v in range(len(mfd_instance.adj_mat)) 
-                                                                                if mfd_instance.adj_mat[u][v] == 1}
-    mfd_instance.original_transition_from_sources = {s:{(s,w):mfd_instance.adj_mat[s][w] 
-                                                                            for w in range(len(mfd_instance.adj_mat))}
-                                                                                for s in mfd_instance.original_transition_from_sources}
-    mfd_instance.original_transition_to_destinations = {d:{(v,d):mfd_instance.adj_mat[v][d] 
-                                                                            for v in range(len(mfd_instance.adj_mat))}
-                                                                                for d in mfd_instance.original_transition_to_destinations}
+def init_random_transition_matrices(mfd_instance, predecessors_list = None):
+    # Reinit the original transition functions with corresponding uniform transition functions 
+    mfd_instance.original_transition_function = {(u, v):{(v,w):1 for w in successors(mfd_instance.adj_mat, v)}
+                                                                    for u, v in mfd_instance.original_transition_function}
+
+    mfd_instance.original_transition_from_sources = {s:{(s,v):1 for v in successors(mfd_instance.adj_mat, s)} 
+                                                                    for s in mfd_instance.original_transition_from_sources}
+
+    mfd_instance.original_transition_to_destinations = {d:{(u,d):1 for u in predecessors(mfd_instance.adj_mat, d, predecessors_list)} 
+                                                                    for d in mfd_instance.original_transition_to_destinations}
+
+    # Reinit the transition functions with uniform transition functions
     mfd_instance.transition_function = deepcopy(mfd_instance.original_transition_function)
     mfd_instance.transition_from_sources = deepcopy(mfd_instance.transition_from_sources)
     mfd_instance.transition_to_destinations = deepcopy(mfd_instance.transition_to_destinations)
 
 
+########################## MODIFY THIS AFTER ########################## 
 
 def init_support_transition_matrices(mfd_instance):
     mfd_instance.original_transition_function = {key:{key2:int(bool(mfd_instance.original_transition_function[key][key2] > 0))
