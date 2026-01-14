@@ -1,8 +1,11 @@
 import numpy as np
 import os
 import sys
+sys.path.append(os.getcwd())
 from instance_generation.random_instance_generator import read_data
 from instance_generation.real_instance.saint_lieu_instance_generator import generate_instance_saint_lieu
+from utils.graph_utils import init_graph_arc_attribute_vals
+
 
 def process_instance (adj_mat, transport_times, aggregated_flow, pairs, flow_values):
     # pre-processing for later. Calculate sources and sources values
@@ -184,7 +187,9 @@ def read_ntreat_instance (dir_name_graph_instance,
                                                                                                                     trans_func = trans_func)
 
     # Process the aggregated flow
-    aggregated_flow = [[sum(multi_flow[i][u][v] for i in range(len(multi_flow))) for v in range(len(multi_flow[0]))] for u in range(len(multi_flow[0]))]
+    aggregated_flow = [[sum(multi_flow[i][u][v] for i in range(len(multi_flow))) 
+                                                    for v in range(len(multi_flow[0]))] 
+                                                        for u in range(len(multi_flow[0]))]
     
     # Verif the adjacency matrix 'adj_mat'
     non_existing_arcs = []

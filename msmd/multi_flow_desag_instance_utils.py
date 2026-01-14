@@ -25,7 +25,6 @@ def init_random_transition_matrices(mfd_instance, predecessors_list = None):
 
 
 ########################## MODIFY THIS AFTER ########################## 
-
 def init_support_transition_matrices(mfd_instance):
     mfd_instance.original_transition_function = {key:{key2:int(bool(mfd_instance.original_transition_function[key][key2] > 0))
                                                 for key2 in mfd_instance.original_transition_function[key]}

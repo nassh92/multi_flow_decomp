@@ -5,7 +5,7 @@ import os
 from copy import deepcopy
 sys.path.append(os.getcwd())
 from utils.shortest_path_solvers import DijkstraShortestPathsSolver
-from utils.graph_utils import sum_out_attributes, get_arcs, graph_union, has_arc
+from utils.graph_utils import sum_out_attributes, get_arcs, get_nodes, graph_union, has_arc
 
 
 """
@@ -40,105 +40,81 @@ def flow_val_residue (flow_values, orirignal_flow_values):
     return deviation_error
 
 
-def flow_residue (multi_flow_desag, unattributed_flow, original_aggregated_flow, offset = 0):
+def flow_residue (multi_flow_desag, original_aggregated_flow, graph):
     """
     Calculate the residue error between the aggregated flow of the decomposed multiflow and the original aggregated flow.
     """
+    # Get the arcs of the graph
+    arcs_list = get_arcs(graph)
     # Calculate the aggregated flow for the multi flow desagregation
-    aggreg_flow = [[sum(multi_flow_desag[i][u][v] for i in range(len(multi_flow_desag)))+unattributed_flow[u][v]\
-                                                                                            for v in range(len(multi_flow_desag[0])-offset)]\
-                                                                                                for u in range(len(multi_flow_desag[0])-offset)]
+    aggreg_flow = [sum(multi_flow_desag[i][u][v] for i in range(len(multi_flow_desag))) for u, v in arcs_list]
     # Process the sum of the flow in all arcs
-    if offset == 0:
-        sum_orig_flow_agg = sum(sum(row) for row in original_aggregated_flow)
-    else:
-        sum_orig_flow_agg = sum(sum(row[:-offset]) for row in original_aggregated_flow[:-offset])
+    sum_orig_flow_agg = sum(original_aggregated_flow[u][v] for u, v in arcs_list)
     # Process the sum of the difference between the two flows
-    diff_flow = [abs(original_aggregated_flow[u][v] - aggreg_flow[u][v]) for u in range(len(aggreg_flow)) for v in range(len(aggreg_flow))]
+    diff_flow = [abs(original_aggregated_flow[u][v] - aggreg_flow[u][v]) for u, v in arcs_list]
     # Return the residue error
     return sum(diff_flow)/sum_orig_flow_agg
 
 
-def multi_flow_residue (multi_flow_desag, original_multi_flow, original_aggregated_flow, offset = 0):
+def multi_flow_residue (multi_flow_desag, original_multi_flow, original_aggregated_flow, graph):
     """
-    Calculate the residue error between the decomposed multiflow and the original multiflow."""
+    Calculate the residue error between the decomposed multiflow and the original multiflow.
+    """
+    # Get the arcs of the graph
+    arcs_list = get_arcs(graph)
     # Process the sum of the flow in all arcs
-    if offset == 0:
-        sum_orig_flow_agg = sum(sum(row) for row in original_aggregated_flow)
-    else:
-        sum_orig_flow_agg = sum(sum(row[:-offset]) for row in original_aggregated_flow[:-offset])
-    
-    """for i in range(len(multi_flow_desag)):
-        for u in range(len(multi_flow_desag[0])):
-            for v in range(len(multi_flow_desag[0])):
-                try:
-                    a = original_multi_flow[i][u][v]
-                except:
-                    print("Length are ", len(multi_flow_desag), len(multi_flow_desag[0]))
-                    print("Original multi flow ", i, u, v, " out of range")
-                    sys.exit()
-                try:
-                    b = multi_flow_desag[i][u][v]
-                except:
-                    print("Multi flow desag ", i, u, v, " out of range")
-                    sys.exit()"""
+    sum_orig_flow_agg = sum(original_aggregated_flow[u][v] for u, v in arcs_list)
     # Process the difference between the real multi flow and the aggregated multif flow for each arc
-    diff_per_arc = [sum(abs(original_multi_flow[i][u][v] - multi_flow_desag[i][u][v]) for i in range(len(original_multi_flow)))\
-                                                                                                    for u in range(len(original_multi_flow[0]))\
-                                                                                                        for v in range(len(original_multi_flow[0]))]
+    diff_per_arc = [sum(abs(original_multi_flow[i][u][v] - multi_flow_desag[i][u][v]) 
+                                                            for i in range(len(original_multi_flow)))\
+                                                                for u, v in arcs_list]
     return sum(diff_per_arc)/(2*sum_orig_flow_agg)
 
 
 #######################################################   ADDITIONAL METRICS  #######################################################
-def proportion_size_flow_support (multi_flow_desag, unattributed_flow, original_aggregated_flow, offset = 0):
+def proportion_size_flow_support (multi_flow_desag, original_aggregated_flow, graph):
     """
-    Calculate the proportion between the size of the support of the aggregated flow of the decomposed multiflow and the size of the support of the original aggregated flow.
+    Calculate the proportion of the size of the support of the aggregated flow of the decomposed multiflow relative to the size of the support of the original aggregated flow.
     """
+    # Get the arcs and the node of the graph
+    arcs_list = get_arcs(graph)
     # Calculate size of support in the original aggregated flow
-    len_support_org_aggregated_flow = sum(original_aggregated_flow[u][v] > 0 for u in range(len(original_aggregated_flow)-offset)\
-                                                                                for v in range(len(original_aggregated_flow)-offset))
+    len_support_org_aggregated_flow = sum(original_aggregated_flow[u][v] > 0 for u, v in arcs_list)
     # Calculate size of support in the new aggregated flow
-    aggregated_flow = [[sum(multi_flow_desag[i][u][v] for i in range(len(multi_flow_desag)))+unattributed_flow[u][v]\
-                                                                                                for v in range(len(multi_flow_desag[0])-offset)]\
-                                                                                                    for u in range(len(multi_flow_desag[0])-offset)]
-    len_support_aggregated_flow = sum(aggregated_flow[u][v] > 0 for u in range(len(aggregated_flow)) for v in range(len(aggregated_flow)))
-    
+    aggregated_flow = [sum(multi_flow_desag[i][u][v] for i in range(len(multi_flow_desag))) for u, v in arcs_list]
+    len_support_aggregated_flow = sum(aggregated_flow[u][v] > 0 for u, v in arcs_list)
     return len_support_aggregated_flow/len_support_org_aggregated_flow
 
 
 #######################################################   SHORTEST PATH METRIC - FLOW arcs  #######################################################
-def flow_proportion_shortest_paths (multi_flow_desag, unattributed_flow, adj_mat, transport_times, pairs, offset = 0):
+def flow_proportion_shortest_paths (multi_flow_desag, graph, transport_times, pairs):
     """
     Calculate the proportion of flow that is on the union of the DAGs of shortest paths for each pairs 
     in the desaggregated multiflow over the total flow associated to the desaggregated multiflow.
     """
+    # Get the arcs and the node of the graph
+    arcs_list = get_arcs(graph)
     # Calculate the aggregated flow for the multi flow desagregation
-    aggreg_flow = [[sum(multi_flow_desag[i][u][v] for i in range(len(multi_flow_desag)))+unattributed_flow[u][v]\
-                                                                                            for v in range(len(multi_flow_desag[0])-offset)]\
-                                                                                                for u in range(len(multi_flow_desag[0])-offset)]
+    aggreg_flow = [sum(multi_flow_desag[i][u][v] for i in range(len(multi_flow_desag))) for u, v in arcs_list]
     
-    # Correct the graphs
-    t_adj_mat = [[adj_mat[u][v] for v in range(len(adj_mat)-offset)] for u in range(len(adj_mat)-offset)]
-    t_transport_times = [[transport_times[u][v] for v in range(len(transport_times)-offset)] for u in range(len(transport_times)-offset)]
-
     # Calculate sum of total flow
-    sum_flow_agg = sum(sum(row) for row in aggreg_flow)
+    sum_flow_agg = sum(aggreg_flow[u][v] for u, v in arcs_list)
     if sum_flow_agg == 0:
         print("Will give a division by zero error.")
         return None
 
     # Process the union of the DAGs of shortest paths for each pairs
-    sum_flow_agg_sp, union_mat = 0, None
+    union_mat = None
     for id_pair in range(len(pairs)):
         source, destination = pairs[id_pair]
-        dijkstra_solver = DijkstraShortestPathsSolver(source, t_adj_mat, t_transport_times, mode = "min_distance")
+        dijkstra_solver = DijkstraShortestPathsSolver(source, graph, transport_times, mode = "min_distance")
         dijkstra_solver.run_dijkstra()
         dijkstra_solver.construct_DAG_shortest_path(destination)
         union_mat = deepcopy(dijkstra_solver.dagsp) if id_pair == 0 else graph_union(union_mat, 
                                                                                      dijkstra_solver.dagsp)
     
     # Process the ratio between the sum of flow on the intersection of the DAGs over the sum of the flow on the all the arcs of the graph
-    sum_flow_agg_sp += sum(aggreg_flow[u][v] for u in range(len(t_adj_mat)) for v in range(len(t_adj_mat)) if union_mat[u][v] == 1)
+    sum_flow_agg_sp = sum(aggreg_flow[u][v] for u, v in arcs_list if has_arc(union_mat, u, v))
 
     return sum_flow_agg_sp/sum_flow_agg
 

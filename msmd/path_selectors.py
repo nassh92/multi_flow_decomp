@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 import os
 sys.path.append(os.getcwd())
-from utils.graph_utils import make_path_simple
+from utils.graph_utils import make_path_simple, successors
 from msmd.stateless_RL_agents import (POLICY_BASED_TYPE_AGENTS,
                                             VALUE_BASED_TYPE_AGENTS,
                                             MIXED_TYPE_AGENTS,
@@ -165,9 +165,9 @@ class RLPathSelecAgentsHandler():
     
 
     def create_agents(self, rl_path_selector, dict_parameters, ac_est_normalised = False):
-        adjacency_matrix = rl_path_selector.mfd_instance.adj_mat
+        graph = rl_path_selector.mfd_instance.adj_mat
         for source, destination in rl_path_selector.mfd_instance.pairs:
-            actions = self.return_actionspace_agent (source, adjacency_matrix)
+            actions = self.return_actionspace_agent (source, graph)
             initial_policy, initial_actions_estimates = self.return_initial_policy(
                                                                                    rl_path_selector,
                                                                                    source,
@@ -184,8 +184,8 @@ class RLPathSelecAgentsHandler():
             rl_path_selector.source_agents[(source, destination)] = ag
 
 
-    def return_actionspace_agent (self, node, adjacency_matrix):
-        return [next_node for next_node in range(len(adjacency_matrix)) if adjacency_matrix[node][next_node] == 1]
+    def return_actionspace_agent (self, node, graph):
+        return successors(graph, node)
     
 
     def return_initial_policy(self, rl_path_selector, agent_key, action_space, ag_type, ac_est_normalised = False):
@@ -339,7 +339,7 @@ class RLPathSelector(PathSelector):
                 print("Penalty keys error in 'opt_params'.")
                 sys.exit()
             self.successor_selector = RLSuccessorSelectorExpoDecay(
-                                                                len(self.mfd_instance.adj_mat),
+                                                                self.mfd_instance.adj_mat,
                                                                 opt_params["penalty_init_val"],
                                                                 opt_params["decay_param"])
 
