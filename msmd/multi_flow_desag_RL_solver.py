@@ -5,6 +5,7 @@ from copy import deepcopy
 import os
 sys.path.append(os.getcwd())
 from utils.metrics import transition_function_residue, flow_val_residue, flow_residue
+from utils.graph_utils import create_isolated_nodes_graph
 from msmd.multi_flow_desag_general_solver import MultiFlowDesagSolver
 from msmd.path_selectors import RLPathSelector, PATH_SELECTOR_TYPES
 from msmd.subgraph_constructors import SubGraphConstructorRL
@@ -34,6 +35,7 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
                  rl_data_init_type = "flow_based",
                  store_perfs_evol_path = None,
                  ignore_conflicts = False,
+                 matrix_representation = True,
                  opt_params = None):
         # The parameters for path creation (only used for creation)
         self.path_desag_params = {"dict_parameters_rl":dict_parameters,
@@ -58,7 +60,8 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
                         path_selector_type = path_selector_type,
                         construct_trans_function = True,
                         exclude_chosen_nodes = exclude_chosen_nodes,
-                        ignore_conflicts = ignore_conflicts)
+                        ignore_conflicts = ignore_conflicts,
+                        matrix_representation = matrix_representation)
         del self.path_desag_params
 
 
@@ -180,9 +183,9 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
             # Initializations
             self.init_episode()
             self._init_iteration_num()
-            multi_flow = [[[0 for col in range(len(self.mfd_instance.adj_mat))] 
-                                for row in range(len(self.mfd_instance.adj_mat))] 
-                                    for _ in range(len(self.mfd_instance.pairs))]
+            multi_flow = [create_isolated_nodes_graph(len(self.mfd_instance.adj_mat), 
+                                                      matrix_representation = self.matrix_representation) 
+                                                            for _ in range(len(self.mfd_instance.pairs))]
             dict_infos_rem_pairs_paths = {pair:[ind, None, -1, self.mfd_instance.original_flow_values[ind]] for ind, pair in enumerate(self.mfd_instance.pairs)} 
             dict_rem_ind_pairs = {ind:pair for ind, pair in enumerate(self.mfd_instance.pairs)}
             

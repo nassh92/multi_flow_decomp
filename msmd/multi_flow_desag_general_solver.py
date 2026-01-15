@@ -14,7 +14,7 @@ from msmd.multi_flow_desag_solver_utils import (PAIRS_CRITERIAS,
                                  PathFilterer)
 from msmd.path_selectors import RandomPathSelector
 from msmd.subgraph_constructors import SubGraphBestPathsConstructor
-from utils.graph_utils import successors, get_arcs
+from utils.graph_utils import successors, get_arcs, create_isolated_nodes_graph
 
 
 
@@ -34,7 +34,8 @@ class MultiFlowDesagSolver():
                  path_selector_type = "min_time_based",
                  construct_trans_function = False,
                  exclude_chosen_nodes = False,
-                 ignore_conflicts = False):
+                 ignore_conflicts = False,
+                 matrix_representation = True):
         # Set the multi flow desaggregation instance
         self.mfd_instance = mfd_instance
         self.generated_flow_values = [0]*len(mfd_instance.original_flow_values)
@@ -72,6 +73,9 @@ class MultiFlowDesagSolver():
         else:
             self.constructed_transition_function = None
 
+        # True iff matrix representation are used for the data
+        self.matrix_representation = matrix_representation
+
         # Create remainig attribute useful for path selection
         self.create_desaggregator_paths_attributes(path_selector_type, max_path_length, exclude_chosen_nodes)
 
@@ -106,7 +110,8 @@ class MultiFlowDesagSolver():
 
         # Set a subgraph filterer
         self.subg_constructor = SubGraphBestPathsConstructor(self.path_selector.path_selector_type,
-                                                             self.mfd_instance)
+                                                             self.mfd_instance,
+                                                             matrix_representation = self.matrix_representation)
     
 
     ########################################################   Iteration related func   ##################################################
@@ -261,8 +266,9 @@ class MultiFlowDesagSolver():
         #                          capacity of the path, remaining_flow_value of the pair), ...}
         # {indice of the pair in 'self.pairs' : the associated pair , ...}
         # Create a list of matrices (which will contain the multiflow to be constructed)
-        multi_flow = [[[0 for col in range(len(self.mfd_instance.adj_mat))] for row in range(len(self.mfd_instance.adj_mat))] 
-                                                                                for _ in range(len(self.mfd_instance.pairs))]
+        multi_flow = [create_isolated_nodes_graph(len(self.mfd_instance.adj_mat), 
+                                                  matrix_representation = self.matrix_representation) 
+                                                            for _ in range(len(self.mfd_instance.pairs))]
         dict_infos_rem_pairs_paths = {pair:[ind, None, -1, self.mfd_instance.original_flow_values[ind]] for ind, pair in enumerate(self.mfd_instance.pairs)} 
         dict_rem_ind_pairs = {ind:pair for ind, pair in enumerate(self.mfd_instance.pairs)}
         self._init_iteration_num()

@@ -27,7 +27,7 @@ def baseline_heurs_simulated_instances():
     # Directories
     dir_name_graph_instance = "instance_generation/instances/capacity/"
     dir_name_multi_flow_instance = "multi_flow_generation/transition_function_instances/"
-    path_results = "results/simulated/MFDS_vs_RL/results_test/"+"results_baseline_heuristics.pickle"
+    path_results = "results/simulated/MFDS_vs_RL/temp/"+"results_baseline_heuristics_mock.pickle"
 
     print("Instances construction ")
     # Construction of the instances

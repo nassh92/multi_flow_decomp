@@ -87,7 +87,7 @@ def proportion_size_flow_support (multi_flow_desag, original_aggregated_flow, gr
 
 
 #######################################################   SHORTEST PATH METRIC - FLOW arcs  #######################################################
-def flow_proportion_shortest_paths (multi_flow_desag, graph, transport_times, pairs):
+def flow_proportion_shortest_paths (multi_flow_desag, graph, transport_times, pairs, matrix_representation = True):
     """
     Calculate the proportion of flow that is on the union of the DAGs of shortest paths for each pairs 
     in the desaggregated multiflow over the total flow associated to the desaggregated multiflow.
@@ -104,14 +104,18 @@ def flow_proportion_shortest_paths (multi_flow_desag, graph, transport_times, pa
         return None
 
     # Process the union of the DAGs of shortest paths for each pairs
-    union_mat = None
     for id_pair in range(len(pairs)):
         source, destination = pairs[id_pair]
-        dijkstra_solver = DijkstraShortestPathsSolver(source, graph, transport_times, mode = "min_distance")
+        dijkstra_solver = DijkstraShortestPathsSolver(source, 
+                                                      graph, 
+                                                      transport_times, 
+                                                      mode = "min_distance",
+                                                      matrix_representation = matrix_representation)
         dijkstra_solver.run_dijkstra()
         dijkstra_solver.construct_DAG_shortest_path(destination)
         union_mat = deepcopy(dijkstra_solver.dagsp) if id_pair == 0 else graph_union(union_mat, 
-                                                                                     dijkstra_solver.dagsp)
+                                                                                     dijkstra_solver.dagsp,
+                                                                                     matrix_representation = matrix_representation)
     
     # Process the ratio between the sum of flow on the intersection of the DAGs over the sum of the flow on the all the arcs of the graph
     sum_flow_agg_sp = sum(aggreg_flow[u][v] for u, v in arcs_list if has_arc(union_mat, u, v))
@@ -122,12 +126,14 @@ def flow_proportion_shortest_paths (multi_flow_desag, graph, transport_times, pa
 
 #######################################################   Difference between constructed transition function   #######################################################
 #######################################################               and real transition function             #######################################################
-def transition_function_residue (original_transition_func, constructed_transition_func, original_aggregated_flow):
+def transition_function_residue (original_transition_func, constructed_transition_func, original_aggregated_flow, graph):
     """
     Calculate the residue error between the constructed transition function and the original transition function.
     """
+    # Get the arcs and the node of the graph
+    arcs_list = get_arcs(graph)
     # Sum of flow along all arcs of the graph
-    sum_orig_flow_agg = sum(sum(row) for row in original_aggregated_flow)
+    sum_orig_flow_agg = sum(original_aggregated_flow[u][v] for u, v in arcs_list)
     # Process the sum of the difference between the two transition functions (the constructed one and the original one)
     sum_diff_flow = sum(sum(abs(original_transition_func[arc][succ_arc] - constructed_transition_func[arc][succ_arc]) 
                                                                             for succ_arc in constructed_transition_func[arc]) 
@@ -140,7 +146,7 @@ def transition_function_residue (original_transition_func, constructed_transitio
 ##########################################################################################################################################
 #######################################################   Instance level matrics   #######################################################
 ##########################################################################################################################################
-def instance_flow_proportion_shortest_paths (adj_mat,
+def instance_flow_proportion_shortest_paths (graph,
                                              original_aggregated_flow, 
                                              transport_times, 
                                              pairs,
@@ -149,7 +155,7 @@ def instance_flow_proportion_shortest_paths (adj_mat,
     Calculate the proportion of flow that is on the union of the DAGs of shortest paths for each pairs over the total flow.
     """
     # Get the arcs of the graph
-    arcs = get_arcs(adj_mat)
+    arcs = get_arcs(graph)
 
     # Calculate sum of total flow
     sum_flow_agg = sum(original_aggregated_flow[u][v] for u, v in arcs)
@@ -159,11 +165,10 @@ def instance_flow_proportion_shortest_paths (adj_mat,
     
     # Calculate the adjacency matrix of the graph associated to the union of all 
     # shortest path DAGs associatd to each pair
-    union_mat = 0
     for id_pair in range(len(pairs)):
         source, destination = pairs[id_pair]
         dijkstra_solver = DijkstraShortestPathsSolver(source, 
-                                                      adj_mat, 
+                                                      graph, 
                                                       transport_times, 
                                                       mode = "min_distance",
                                                       matrix_representation = matrix_representation)
@@ -175,5 +180,4 @@ def instance_flow_proportion_shortest_paths (adj_mat,
     
     # Process the ratio between the sum of flow on the intersection of the DAGs over the sum of the flow on the all the arcs of the graph
     sum_flow_agg_sp = sum(original_aggregated_flow[u][v] for u, v in arcs if has_arc(union_mat, u, v))
-
     return sum_flow_agg_sp/sum_flow_agg

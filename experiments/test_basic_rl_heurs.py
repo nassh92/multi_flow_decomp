@@ -29,7 +29,7 @@ import concurrent.futures
 sys.path.append(os.getcwd())
 from msmd.multi_flow_desag_instance_utils import construct_instances
 from msmd.multi_flow_desag_RL_solver import MultiFlowDesagRLSolver
-from msmd.experiments.test_utils import process_performances
+from experiments.test_utils import process_performances
 
 
 # Function used to run experiments
