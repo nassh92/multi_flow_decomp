@@ -29,7 +29,8 @@ class MultiFlowDesagSolverTransF(MultiFlowDesagSolver):
                  construct_trans_function = False,
                  max_trans_func_successor = False,
                  exclude_chosen_nodes = False,
-                 ignore_conflicts = False):
+                 ignore_conflicts = False,
+                 matrix_representation = True):
         # True iif we want to take the action associated to the maximum value in the transition function
         # Delete after creation
         self.path_desag_params = {"max_trans_func_successor":max_trans_func_successor}
@@ -43,7 +44,8 @@ class MultiFlowDesagSolverTransF(MultiFlowDesagSolver):
                         path_selector_type = path_selector_type,
                         construct_trans_function = construct_trans_function,
                         exclude_chosen_nodes = exclude_chosen_nodes,
-                        ignore_conflicts = ignore_conflicts)
+                        ignore_conflicts = ignore_conflicts,
+                        matrix_representation = matrix_representation)
         del self.path_desag_params
 
 
@@ -86,7 +88,8 @@ class MultiFlowDesagSolverTransF(MultiFlowDesagSolver):
         # Set a subgraph filterer
         self.subg_constructor = SubGraphConstructorTransF(path_selector_type, 
                                                           self.mfd_instance, 
-                                                          max_trans_func_successor = self.path_desag_params["max_trans_func_successor"])
+                                                          max_trans_func_successor = self.path_desag_params["max_trans_func_successor"],
+                                                          matrix_representation = self.matrix_representation)
     
 
 

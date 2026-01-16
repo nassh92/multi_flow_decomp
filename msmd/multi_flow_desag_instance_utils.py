@@ -3,7 +3,7 @@ import os
 from copy import deepcopy
 sys.path.append(os.getcwd())
 from utils.pre_process_utils import read_ntreat_instance
-from utils.graph_utils import successors, predecessors
+from utils.graph_utils import successors, predecessors, delete_arc, has_arc
 
 
 ##############################################  Functions  ############################################## 
@@ -167,11 +167,15 @@ class MultiFlowDesagInstance:
             self.aggregated_flow[path[i]][path[i+1]] -= flow_amount
             # Augment the flow on the current arc of of the desagregated constructed flow (if the associated pair is known)
             multi_flow[ind_pair][path[i]][path[i+1]] += flow_amount
-            # Set the current arc to 0 if the aggregated flow on this arc is 0 
-            self.adj_mat[path[i]][path[i+1]] = int(bool(self.aggregated_flow[path[i]][path[i+1]]) != 0)
+            # If the flow is negative exit the program
+            if self.aggregated_flow[path[i]][path[i+1]] < 0:
+                print("Negative Flow Value.")
+                sys.exit()
+            # Delete the current arc if the aggregated flow on this arc is 0
+            if self.aggregated_flow[path[i]][path[i+1]] == 0: delete_arc(self.adj_mat, path[i], path[i+1])
             # Update the time on the current arc if it is still there
             if self.update_transport_time:
-                self.transport_times[path[i]][path[i+1]] = self.return_update_time_target(path[i], path[i+1]) if self.adj_mat[path[i]][path[i+1]] == 1 else float("inf")
+                self.transport_times[path[i]][path[i+1]] = self.return_update_time_target(path[i], path[i+1]) if has_arc(self.adj_mat, path[i], path[i+1]) else float("inf")
             # Update transition function if needed
             if self.update_transition_functions:
                 if i == 0:

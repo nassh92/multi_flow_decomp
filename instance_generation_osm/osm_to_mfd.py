@@ -19,7 +19,7 @@ sys.path.append(os.getcwd())
 from instance_generation.generic_multi_flow_instances_generator import generate_multi_flow_instance, fetch_ajust_ncorrect_flow_network_data
 from msmd.multi_flow_desag_instance_utils import MultiFlowDesagInstance
 from instance_generation.pairs_utils import process_weight_pairs, generate_origin_destination_pairs_local
-from pre_process_data_osm.restrict_segments import show_duplicate_arcs_subgraph
+from instance_generation_osm.restrict_segments import show_duplicate_arcs_subgraph
 from utils.graph_utils import construct_predecessors_list, init_graph_arc_attribute_vals, get_arcs, delete_arc
 
 

@@ -141,7 +141,7 @@ if __name__ == "__main__":
     
     # Construction of the instances
     dict_node_pairs_instances = {}
-    dir_constructed_instances_path = "RL_methods/data/"
+    dir_constructed_instances_path = "data/simulated_data/node_pairs/"
     dir_list = os.listdir(dir_constructed_instances_path)
     for file_name in dir_list:
         if file_name[-4:] == ".npy":

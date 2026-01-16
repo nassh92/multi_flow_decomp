@@ -5,7 +5,7 @@ import os
 from copy import deepcopy
 sys.path.append(os.getcwd())
 from utils.shortest_path_solvers import DijkstraShortestPathsSolver
-from utils.graph_utils import sum_out_attributes, get_arcs, get_nodes, graph_union, has_arc
+from utils.graph_utils import sum_out_attributes, get_arcs, get_nodes, graph_union, has_arc, init_graph_arc_attribute_vals
 
 
 """
@@ -47,7 +47,8 @@ def flow_residue (multi_flow_desag, original_aggregated_flow, graph):
     # Get the arcs of the graph
     arcs_list = get_arcs(graph)
     # Calculate the aggregated flow for the multi flow desagregation
-    aggreg_flow = [sum(multi_flow_desag[i][u][v] for i in range(len(multi_flow_desag))) for u, v in arcs_list]
+    aggreg_flow = init_graph_arc_attribute_vals(graph, init_val = 0)
+    for u, v in arcs_list: aggreg_flow[u][v] = sum(multi_flow_desag[i][u][v] for i in range(len(multi_flow_desag)))
     # Process the sum of the flow in all arcs
     sum_orig_flow_agg = sum(original_aggregated_flow[u][v] for u, v in arcs_list)
     # Process the sum of the difference between the two flows
@@ -82,7 +83,7 @@ def proportion_size_flow_support (multi_flow_desag, original_aggregated_flow, gr
     len_support_org_aggregated_flow = sum(original_aggregated_flow[u][v] > 0 for u, v in arcs_list)
     # Calculate size of support in the new aggregated flow
     aggregated_flow = [sum(multi_flow_desag[i][u][v] for i in range(len(multi_flow_desag))) for u, v in arcs_list]
-    len_support_aggregated_flow = sum(aggregated_flow[u][v] > 0 for u, v in arcs_list)
+    len_support_aggregated_flow = sum(aggregated_flow_arc > 0 for aggregated_flow_arc in aggregated_flow)
     return len_support_aggregated_flow/len_support_org_aggregated_flow
 
 
@@ -95,8 +96,9 @@ def flow_proportion_shortest_paths (multi_flow_desag, graph, transport_times, pa
     # Get the arcs and the node of the graph
     arcs_list = get_arcs(graph)
     # Calculate the aggregated flow for the multi flow desagregation
-    aggreg_flow = [sum(multi_flow_desag[i][u][v] for i in range(len(multi_flow_desag))) for u, v in arcs_list]
-    
+    aggreg_flow = init_graph_arc_attribute_vals(graph, init_val = 0)
+    for u, v in arcs_list: aggreg_flow[u][v] = sum(multi_flow_desag[i][u][v] for i in range(len(multi_flow_desag)))
+
     # Calculate sum of total flow
     sum_flow_agg = sum(aggreg_flow[u][v] for u, v in arcs_list)
     if sum_flow_agg == 0:

@@ -14,7 +14,7 @@ from msmd.multi_flow_desag_solver_utils import (PAIRS_CRITERIAS,
                                  PathFilterer)
 from msmd.path_selectors import RandomPathSelector
 from msmd.subgraph_constructors import SubGraphBestPathsConstructor
-from utils.graph_utils import successors, get_arcs, create_isolated_nodes_graph
+from utils.graph_utils import successors, get_arcs, create_isolated_nodes_graph, init_graph_arc_attribute_vals
 
 
 
@@ -266,9 +266,8 @@ class MultiFlowDesagSolver():
         #                          capacity of the path, remaining_flow_value of the pair), ...}
         # {indice of the pair in 'self.pairs' : the associated pair , ...}
         # Create a list of matrices (which will contain the multiflow to be constructed)
-        multi_flow = [create_isolated_nodes_graph(len(self.mfd_instance.adj_mat), 
-                                                  matrix_representation = self.matrix_representation) 
-                                                            for _ in range(len(self.mfd_instance.pairs))]
+        multi_flow = [init_graph_arc_attribute_vals(self.mfd_instance.adj_mat) 
+                                                for _ in range(len(self.mfd_instance.pairs))]
         dict_infos_rem_pairs_paths = {pair:[ind, None, -1, self.mfd_instance.original_flow_values[ind]] for ind, pair in enumerate(self.mfd_instance.pairs)} 
         dict_rem_ind_pairs = {ind:pair for ind, pair in enumerate(self.mfd_instance.pairs)}
         self._init_iteration_num()
@@ -277,7 +276,7 @@ class MultiFlowDesagSolver():
         selected_pairs = self.select_paths_pairs(pair_criteria, path_card_criteria, multi_flow, dict_infos_rem_pairs_paths, dict_rem_ind_pairs)
         # Main loop
         while len(dict_infos_rem_pairs_paths) > 0 and not self._has_iterated_too_much ():
-            print(len(dict_infos_rem_pairs_paths))
+            # print(len(dict_infos_rem_pairs_paths))
             # Update the flow on each path
             self.update_multi_flow_network(multi_flow, selected_pairs, dict_infos_rem_pairs_paths)
             # Add the flow on the paths on the constructed transition matrix

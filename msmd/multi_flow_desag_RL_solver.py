@@ -5,7 +5,7 @@ from copy import deepcopy
 import os
 sys.path.append(os.getcwd())
 from utils.metrics import transition_function_residue, flow_val_residue, flow_residue
-from utils.graph_utils import create_isolated_nodes_graph
+from utils.graph_utils import create_isolated_nodes_graph, init_graph_arc_attribute_vals
 from msmd.multi_flow_desag_general_solver import MultiFlowDesagSolver
 from msmd.path_selectors import RLPathSelector, PATH_SELECTOR_TYPES
 from msmd.subgraph_constructors import SubGraphConstructorRL
@@ -183,8 +183,7 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
             # Initializations
             self.init_episode()
             self._init_iteration_num()
-            multi_flow = [create_isolated_nodes_graph(len(self.mfd_instance.adj_mat), 
-                                                      matrix_representation = self.matrix_representation) 
+            multi_flow = [init_graph_arc_attribute_vals(self.mfd_instance.adj_mat) 
                                                             for _ in range(len(self.mfd_instance.pairs))]
             dict_infos_rem_pairs_paths = {pair:[ind, None, -1, self.mfd_instance.original_flow_values[ind]] for ind, pair in enumerate(self.mfd_instance.pairs)} 
             dict_rem_ind_pairs = {ind:pair for ind, pair in enumerate(self.mfd_instance.pairs)}

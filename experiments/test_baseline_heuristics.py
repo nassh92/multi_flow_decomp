@@ -11,7 +11,7 @@ import sys
 from copy import deepcopy
 
 sys.path.append(os.getcwd())
-from utils.metrics import (transition_function_residue, 
+from utils.general_eval_msmd_metrics import (transition_function_residue, 
                      flow_val_residue, 
                      flow_residue,
                      multi_flow_residue,
@@ -182,7 +182,8 @@ def baseline_heurs_simulated_instances():
 
 ################################################################################################
 def baseline_heurs_real_instances(constructed_instances_path,
-                                  path_results):
+                                  path_results,
+                                  matrix_representation = True):
     #print("Current directory : ", os.getcwd())
     # Construction of the instances
     dict_instances = np.load(constructed_instances_path, 
@@ -200,11 +201,11 @@ def baseline_heurs_real_instances(constructed_instances_path,
     path_card_criteria = "one_only"
 
     # Test names
-    """test_names = ["min_time", 
+    test_names = ["min_time", 
                 "max_capacity", 
                 "trans_func", 
-                "random"]"""
-    test_names = ["trans_func"]
+                "random"]
+    #test_names = ["trans_func"]
 
     # Main loop
     dict_results = {}
@@ -228,7 +229,8 @@ def baseline_heurs_real_instances(constructed_instances_path,
                                             path_selector_type = "min_time_based",
                                             construct_trans_function = True,
                                             exclude_chosen_nodes = False,
-                                            ignore_conflicts = False)
+                                            ignore_conflicts = False,
+                                            matrix_representation = matrix_representation)
                 multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
                                                                                     path_card_criteria)
             
@@ -243,7 +245,8 @@ def baseline_heurs_real_instances(constructed_instances_path,
                                             path_selector_type = "max_capacity_based",
                                             construct_trans_function = True,
                                             exclude_chosen_nodes = False,
-                                            ignore_conflicts = False)
+                                            ignore_conflicts = False,
+                                            matrix_representation = matrix_representation)
                 multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
                                                                                     path_card_criteria)
 
@@ -258,7 +261,8 @@ def baseline_heurs_real_instances(constructed_instances_path,
                                             path_selector_type = "trans_func_based",
                                             construct_trans_function = True,
                                             exclude_chosen_nodes = False,
-                                            ignore_conflicts = False)
+                                            ignore_conflicts = False,
+                                            matrix_representation = matrix_representation)
                 multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
                                                                                     path_card_criteria)
 
@@ -273,7 +277,8 @@ def baseline_heurs_real_instances(constructed_instances_path,
                                             path_selector_type = "random",
                                             construct_trans_function = True,
                                             exclude_chosen_nodes = False,
-                                            ignore_conflicts = False)
+                                            ignore_conflicts = False,
+                                            matrix_representation = matrix_representation)
                 multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
                                                                                     path_card_criteria)
             
@@ -281,31 +286,31 @@ def baseline_heurs_real_instances(constructed_instances_path,
                 print("Error.")
                 sys.exit()
         
-            unattributed_flow = [[0 for v in range(len(mfd_instance.aggregated_flow))] 
-                                                        for u in range(len(mfd_instance.aggregated_flow))]
             # Process the metrics and store them in 'dict_result'
             flow_val_res = flow_val_residue (flow_vals_desagg, 
                                             mfd_instance.original_flow_values)
             flow_res = flow_residue (multi_flow_desag, 
-                                    unattributed_flow, 
-                                    mfd_instance.original_aggregated_flow)
+                                    mfd_instance.original_aggregated_flow,
+                                    mfd_instance.original_adj_mat)
             m_flow_res = multi_flow_residue (multi_flow_desag, 
                                             original_multi_flow, 
-                                            mfd_instance.original_aggregated_flow)
-            prop_fsupp = proportion_size_flow_support (multi_flow_desag, 
-                                                    unattributed_flow, 
-                                                    mfd_instance.original_aggregated_flow)
-            prop_sp = flow_proportion_shortest_paths (multi_flow_desag, 
-                                                    unattributed_flow, 
+                                            mfd_instance.original_aggregated_flow,
+                                            mfd_instance.original_adj_mat)
+            prop_fsupp = proportion_size_flow_support (multi_flow_desag,  
+                                                       mfd_instance.original_aggregated_flow,
+                                                       mfd_instance.original_adj_mat)
+            prop_sp = flow_proportion_shortest_paths (multi_flow_desag,  
                                                     mfd_instance.original_adj_mat, 
                                                     mfd_instance.ideal_transport_times, 
-                                                    mfd_instance.pairs)
+                                                    mfd_instance.pairs,
+                                                    matrix_representation = matrix_representation)
             """if prop_sp == None and exit_on_none:
                 print(multi_flow_desag)
                 sys.exit()"""
             trans_func_res = transition_function_residue (mfd_instance.original_transition_function, 
                                                         solver.constructed_transition_function, 
-                                                        mfd_instance.original_aggregated_flow)
+                                                        mfd_instance.original_aggregated_flow,
+                                                        mfd_instance.original_adj_mat)
             print("Proportion of support arcs  ", prop_fsupp)
             print("Proportion of flow val residue ", flow_val_res)
             print("Proportion of flow residue  ", flow_res)
@@ -342,12 +347,13 @@ def main():
     elif test_name == "real_instances":
         # Directories
         #constructed_instances_path = "multi_flow_generation_wei/data/data_instances.npy"
-        constructed_instances_path = "data/pre_processed/LieuSaint/data_instances.npy"
+        constructed_instances_path = "data/real_data/pre_processed/LieuSaint/data_instances.npy"
         #path_results = "results/simulated/MFDS_vs_RL/results_test/"+"results_rl_heuristics.npy"
         #path_results = "results/"+"results_versailles_heuristics.pickle"
         path_results = "results/"+"results_lieusaint2_heuristics.pickle"
         baseline_heurs_real_instances(constructed_instances_path,
-                                      path_results)
+                                      path_results,
+                                      matrix_representation = False)
 
     elif test_name not in test_names:
         print("Test name is unrecognized.")
