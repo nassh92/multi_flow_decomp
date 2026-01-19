@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 import os
 sys.path.append(os.getcwd())
-from utils.graph_utils import make_path_simple, successors
+from utils.graph_utils import make_path_simple, successors, has_arc
 from msmd.stateless_RL_agents import (POLICY_BASED_TYPE_AGENTS,
                                             VALUE_BASED_TYPE_AGENTS,
                                             MIXED_TYPE_AGENTS,
@@ -264,7 +264,7 @@ class RLArcPathSelecAgentsHandler(RLPathSelecAgentsHandler):
         for source, destination in rl_path_selector.mfd_instance.pairs:
             for node in range(len(adjacency_matrix)):
                 for succ_node in range(len(adjacency_matrix)):
-                    if adjacency_matrix[node][succ_node] == 1:
+                    if has_arc(adjacency_matrix, node, succ_node):
                         actions = self.return_actionspace_agent (succ_node, adjacency_matrix)
                         if len(actions) > 0:
                             initial_policy, initial_actions_estimates = self.return_initial_policy(

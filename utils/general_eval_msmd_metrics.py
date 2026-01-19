@@ -128,7 +128,10 @@ def flow_proportion_shortest_paths (multi_flow_desag, graph, transport_times, pa
 
 #######################################################   Difference between constructed transition function   #######################################################
 #######################################################               and real transition function             #######################################################
-def transition_function_residue (original_transition_func, constructed_transition_func, original_aggregated_flow, graph):
+def transition_function_residue (original_transition_func, 
+                                 constructed_transition_func, 
+                                 original_aggregated_flow, 
+                                 graph):
     """
     Calculate the residue error between the constructed transition function and the original transition function.
     """

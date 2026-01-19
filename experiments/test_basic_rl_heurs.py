@@ -49,7 +49,8 @@ def run_experiment (mfd_instance,
                     opt_params,
                     pair_criteria, 
                     path_card_criteria,
-                    ls_coeff):
+                    ls_coeff,
+                    matrix_representation = True):
     # Create an RL multi flow desaggregation solver and desagregate the multi flow
     solver = MultiFlowDesagRLSolver(mfd_instance = mfd_instance,
                                     path_selector_type = path_type_selector,
@@ -65,12 +66,12 @@ def run_experiment (mfd_instance,
                                     rl_data_init_type = "uniform",
                                     store_perfs_evol_path = None,
                                     ignore_conflicts = False,
+                                    matrix_representation = matrix_representation,
                                     opt_params = opt_params)
     multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
                                                                         path_card_criteria,
                                                                         ls_coeff[0], ls_coeff[1], ls_coeff[2])
-    process_performances(len(mfd_instance.aggregated_flow), 
-                        flow_vals_desagg, 
+    process_performances(flow_vals_desagg, 
                         mfd_instance.original_flow_values, 
                         multi_flow_desag,
                         mfd_instance.original_aggregated_flow,
@@ -82,7 +83,8 @@ def run_experiment (mfd_instance,
                         solver,
                         dict_results,
                         ind_instance,
-                        test_infos)
+                        test_infos,
+                        matrix_representation = matrix_representation)
 
 
 
@@ -132,6 +134,7 @@ def basic_rl_heurs_simulated_instances():
      
     nb_phys_cpus, nb_cpus = psutil.cpu_count(logical = False), psutil.cpu_count(logical = True)
     
+
     print("Nb of CPUs ", nb_phys_cpus, nb_cpus)
     
     jobs = []
@@ -261,9 +264,12 @@ def basic_rl_heurs_simulated_instances():
 def basic_rl_heurs_lieu_saint_real_instances():
     print("Satring main.")
     # Construction of the instances
-    constructed_instances_path = "multi_flow_generation_wei/data/data_instances.npy"
+    #constructed_instances_path = "multi_flow_generation_wei/data/data_instances.npy"
+    #constructed_instances_path = "data/real_data/pre_processed/LieuSaint/data_instances.npy"
+    constructed_instances_path = "data/data_instances.npy"
     #path_results = "results/simulated/MFDS_vs_RL/results_test/"+"results_rl_heuristics.npy"
-    path_results = "results/"+"results_lieu_saint_rl_heuristics.pickle"
+    #path_results = "results/"+"results_lieu_saint_rl_heuristics.pickle"
+    path_results = "results/"+"results_lieu_saint_rl_heuristics2.pickle"
 
     # Common parameters values
     max_path_length = 10000
@@ -301,6 +307,8 @@ def basic_rl_heurs_lieu_saint_real_instances():
         multi_process = False
      
     nb_phys_cpus, nb_cpus = psutil.cpu_count(logical = False), psutil.cpu_count(logical = True)
+    
+    nb_phys_cpus, nb_cpus = 23, 23
     
     print("Nb of CPUs ", nb_phys_cpus, nb_cpus)
     

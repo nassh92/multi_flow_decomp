@@ -4,8 +4,8 @@ import numpy as np
 from copy import deepcopy
 import os
 sys.path.append(os.getcwd())
-from utils.metrics import transition_function_residue, flow_val_residue, flow_residue
-from utils.graph_utils import create_isolated_nodes_graph, init_graph_arc_attribute_vals
+from utils.general_eval_msmd_metrics import transition_function_residue, flow_val_residue, flow_residue
+from utils.graph_utils import create_isolated_nodes_graph, init_graph_arc_attribute_vals, has_arc, successors, get_arcs
 from msmd.multi_flow_desag_general_solver import MultiFlowDesagSolver
 from msmd.path_selectors import RLPathSelector, PATH_SELECTOR_TYPES
 from msmd.subgraph_constructors import SubGraphConstructorRL
@@ -102,11 +102,8 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
         self.generated_flow_values = [0]*len(self.mfd_instance.original_flow_values)
 
         # Set the newly formed transition function
-        self.constructed_transition_function = {(u, v):{(v,w):0 for w in range(len(self.mfd_instance.adj_mat)) 
-                                                                    if self.mfd_instance.adj_mat[v][w] == 1}
-                                                                        for u in range(len(self.mfd_instance.adj_mat)) 
-                                                                            for v in range(len(self.mfd_instance.adj_mat)) 
-                                                                                if self.mfd_instance.adj_mat[u][v] == 1}
+        self.constructed_transition_function = {(u, v):{(v, w):0 for w in successors(self.mfd_instance.adj_mat, v)}
+                                                                    for u, v in get_arcs(self.mfd_instance.adj_mat)}
 
         # Reset the pair reoderer used to reorder the pairs in case we select a path for each of the pairs
         if self.reodering_pairs_policy_name is None:
@@ -136,14 +133,14 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
             
         if coeff2 != 0:
             fl_res = flow_residue (multi_flow, 
-                                   [[0 for v in range(len(self.mfd_instance.aggregated_flow))] 
-                                            for u in range(len(self.mfd_instance.aggregated_flow))], 
-                                   self.mfd_instance.original_aggregated_flow)
-            
+                                   self.mfd_instance.original_aggregated_flow,
+                                   self.mfd_instance.original_adj_mat)
+        
         if coeff3 != 0:
             transf_res = transition_function_residue (self.mfd_instance.original_transition_function, 
                                                       self.constructed_transition_function, 
-                                                      self.mfd_instance.original_aggregated_flow)
+                                                      self.mfd_instance.original_aggregated_flow,
+                                                      self.mfd_instance.original_adj_mat)
         
         total_weight_error = coeff1*fl_val_res + coeff2*fl_res + coeff3*transf_res
 

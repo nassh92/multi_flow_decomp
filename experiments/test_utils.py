@@ -1,9 +1,9 @@
-from utils.metrics import (transition_function_residue, 
-                     flow_val_residue, 
-                     flow_residue,
-                     multi_flow_residue,
-                     proportion_size_flow_support,
-                     flow_proportion_shortest_paths)
+from utils.general_eval_msmd_metrics import (transition_function_residue, 
+                                             flow_val_residue, 
+                                             flow_residue,
+                                             multi_flow_residue,
+                                             proportion_size_flow_support,
+                                             flow_proportion_shortest_paths)
 import sys
 
 
@@ -18,13 +18,12 @@ def update_dict_results(dict_results, key, val):
     dict_results[key] = val
 
 
-def process_performances(nb_nodes, 
-                         flow_vals_desagg, 
+def process_performances(flow_vals_desagg, 
                          original_flow_values, 
                          multi_flow_desag,
                          original_aggregated_flow,
                          original_multi_flow,
-                         original_adj_mat,
+                         graph,
                          ideal_transport_times,
                          pairs,
                          original_transition_function,
@@ -32,33 +31,34 @@ def process_performances(nb_nodes,
                          dict_results,
                          ind_instance,
                          test_infos,
+                         matrix_representation = True,
                          opt_params = None,
                          print_ = False):
-    unattributed_flow = [[0 for v in range(nb_nodes)] 
-                                for u in range(nb_nodes)]
     # Process the metrics and store them in 'dict_result'
     flow_val_res = flow_val_residue (flow_vals_desagg, 
                                     original_flow_values)
     flow_res = flow_residue (multi_flow_desag, 
-                            unattributed_flow, 
-                            original_aggregated_flow)
+                            original_aggregated_flow,
+                            graph)
     m_flow_res = multi_flow_residue (multi_flow_desag, 
                                     original_multi_flow, 
-                                    original_aggregated_flow)
+                                    original_aggregated_flow,
+                                    graph)
     prop_fsupp = proportion_size_flow_support (multi_flow_desag, 
-                                            unattributed_flow, 
-                                            original_aggregated_flow)
+                                               original_aggregated_flow, 
+                                               graph)
     prop_sp = flow_proportion_shortest_paths (multi_flow_desag, 
-                                            unattributed_flow, 
-                                            original_adj_mat, 
-                                            ideal_transport_times, 
-                                            pairs)
+                                              graph, 
+                                              ideal_transport_times, 
+                                              pairs,
+                                              matrix_representation = matrix_representation)
     """if prop_sp == None and exit_on_none:
         print(multi_flow_desag)
         sys.exit()"""
     trans_func_res = transition_function_residue (original_transition_function, 
                                                 solver.constructed_transition_function, 
-                                                original_aggregated_flow)
+                                                original_aggregated_flow,
+                                                graph)
     
     coeff1, coeff2, coeff3 = test_infos[-1]
     total_weight_error = coeff1 * flow_val_res + coeff2 * flow_res + coeff3 * trans_func_res

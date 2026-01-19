@@ -48,7 +48,8 @@ def run_experiment (mfd_instance,
                     opt_params,
                     pair_criteria, 
                     path_card_criteria,
-                    ls_coeff):
+                    ls_coeff,
+                    matrix_representation = True):
     # Create an RL multi flow desaggregation solver and desagregate the multi flow
     solver = MultiFlowDesagRLSolver(mfd_instance = mfd_instance,
                                     path_selector_type = path_type_selector,
@@ -64,12 +65,12 @@ def run_experiment (mfd_instance,
                                     rl_data_init_type = "uniform",
                                     store_perfs_evol_path = None,
                                     ignore_conflicts = False,
+                                    matrix_representation = matrix_representation,
                                     opt_params = opt_params)
     multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
                                                                         path_card_criteria,
                                                                         ls_coeff[0], ls_coeff[1], ls_coeff[2])
-    process_performances(len(mfd_instance.aggregated_flow), 
-                        flow_vals_desagg, 
+    process_performances(flow_vals_desagg, 
                         mfd_instance.original_flow_values, 
                         multi_flow_desag,
                         mfd_instance.original_aggregated_flow,
@@ -82,7 +83,8 @@ def run_experiment (mfd_instance,
                         dict_results,
                         ind_instance,
                         test_infos[-1],
-                        opt_params = (test_infos[0], test_infos[1]))
+                        opt_params = (test_infos[0], test_infos[1]),
+                        matrix_representation = matrix_representation)
 
 
 if __name__ == "__main__":
