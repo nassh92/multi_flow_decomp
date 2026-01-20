@@ -27,7 +27,6 @@ import multiprocessing
 import concurrent.futures
 
 sys.path.append(os.getcwd())
-from msmd.multi_flow_desag_instance_utils import construct_instances
 from msmd.multi_flow_desag_RL_solver import MultiFlowDesagRLSolver
 from experiments.test_utils import process_performances
 
@@ -90,6 +89,7 @@ def run_experiment (mfd_instance,
 
 ###################################   Tests   ###################################
 def basic_rl_heurs_simulated_instances():
+    from msmd.multi_flow_desag_instance_utils import construct_instances
     print("Satring main.")
     # Construction of the instances
     constructed_instances_path = "RL_methods/data/data_instances.npy"
@@ -290,7 +290,7 @@ def basic_rl_heurs_lieu_saint_real_instances():
     ls_path_selector_types = ["rl_arc_based"]
     ls_path_card_criteria = ["one_for_each"]
     #ls_learning_rates = [0.01, 0.025, 0.05, 0.075, 0.1]
-    ls_learning_rates = [0.025]
+    ls_learning_rates = [0.05]
     print(ls_learning_rates)
     # Meta data
     res_key_metadata = ["path_type_selector", "path_card_criteria", 
@@ -307,8 +307,6 @@ def basic_rl_heurs_lieu_saint_real_instances():
         multi_process = False
      
     nb_phys_cpus, nb_cpus = psutil.cpu_count(logical = False), psutil.cpu_count(logical = True)
-    
-    nb_phys_cpus, nb_cpus = 23, 23
     
     print("Nb of CPUs ", nb_phys_cpus, nb_cpus)
     
