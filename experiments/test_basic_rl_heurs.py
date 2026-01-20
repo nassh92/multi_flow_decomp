@@ -290,7 +290,7 @@ def basic_rl_heurs_lieu_saint_real_instances():
     ls_path_selector_types = ["rl_arc_based"]
     ls_path_card_criteria = ["one_for_each"]
     #ls_learning_rates = [0.01, 0.025, 0.05, 0.075, 0.1]
-    ls_learning_rates = [0.05]
+    ls_learning_rates = [0.01]
     print(ls_learning_rates)
     # Meta data
     res_key_metadata = ["path_type_selector", "path_card_criteria", 
