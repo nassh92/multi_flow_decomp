@@ -1,5 +1,9 @@
 multi_flow_generation_wei/
 
+instance_generation/real_instances_wei_based/
+
+RL_methods/
+
 results/
 
 sssd/
@@ -9,6 +13,10 @@ data/
 example_test_heursitics/
 
 organisation code/
+
+data_exploration/explore_data_routing_optimization.ipynb
+
+
 
 *.txt
 

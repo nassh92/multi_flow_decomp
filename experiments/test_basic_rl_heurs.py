@@ -50,7 +50,7 @@ def run_experiment (mfd_instance,
                     path_card_criteria,
                     ls_coeff,
                     matrix_representation = True):
-    # Create an RL multi flow desaggregation solver and desagregate the multi flow
+    # Create an RL multi flow desaggregation solver and desaggregate the multi flow
     solver = MultiFlowDesagRLSolver(mfd_instance = mfd_instance,
                                     path_selector_type = path_type_selector,
                                     dict_parameters = dict_params_rl_agent,
@@ -92,11 +92,14 @@ def basic_rl_heurs_simulated_instances():
     from msmd.multi_flow_desag_instance_utils import construct_instances
     print("Satring main.")
     # Construction of the instances
-    constructed_instances_path = "RL_methods/data/data_instances.npy"
-    dir_name_graph_instance = "instance_generation/instances/capacity/"
+    #constructed_instances_path = "data/simulated_data/complete_instances/node_pairs/data_instances_random_75_15.npy"
+    constructed_instances_path = "data/data_instances_random_95_20.npy"
+    print(constructed_instances_path)
+    time.sleep(20)
+    dir_name_graph_instance = "data/simulated_data/instances/random/instances_nbnodes=95_pairs=20/"
     dir_name_multi_flow_instance = "multi_flow_generation/transition_function_instances/"
     #path_results = "results/simulated/MFDS_vs_RL/results_test/"+"results_rl_heuristics.npy"
-    path_results = "results/"+"results_rl_heuristics.pickle"
+    path_results = "results/"+"results_rl_heuristics_random_95.pickle"
 
     # Common parameters values
     max_path_length = 10000
@@ -111,12 +114,14 @@ def basic_rl_heurs_simulated_instances():
                             "lr":0.05,
                             "eps":None,
                             "opt_params":{"initial_actions_estimates":None}}
-    coeffs_list = [(0.33, 0.33, 0.34), (0.5, 0.5, 0.0)]
+    #coeffs_list = [(0.33, 0.33, 0.34), (0.5, 0.5, 0.0)]
+    coeffs_list = [(0.33, 0.33, 0.34)]
 
     # Test names
     ls_path_selector_types = ["rl_node_based", "rl_arc_based"]
     ls_path_card_criteria = ["one_only", "one_for_each"]
-    ls_learning_rates = [0.01, 0.025, 0.05, 0.075, 0.1]
+    #ls_learning_rates = [0.01, 0.025, 0.05, 0.075, 0.1]
+    ls_learning_rates = [0.01]
     
     # Meta data
     res_key_metadata = ["path_type_selector", "path_card_criteria", 
@@ -148,18 +153,18 @@ def basic_rl_heurs_simulated_instances():
         nb_cpu_workers = 1
 
     # Construction of the instances
-    if constructed_instances_path is None:
+    """if constructed_instances_path is None:
         dict_instances = construct_instances (
                             dir_name_graph_instance = dir_name_graph_instance, 
-                            dir_name_multi_flow_instance = dir_name_multi_flow_instance,
+                            dir_name_multi_flow_instance = None,
                             nb_instances = 100,
                             ls_update_transport_time = [True],
                             ls_update_transition_functions = [True])
         np.save("RL_methods/data/data_instances", dict_instances)
-    else:
-        print("Fetch instances.")
-        dict_instances = np.load("RL_methods/data/data_instances.npy", 
-                                 allow_pickle = True).flatten()[0]    
+    else:"""
+    print("Fetch instances.")
+    dict_instances = np.load(constructed_instances_path, 
+                                allow_pickle = True).flatten()[0]    
 
     # Main
     if debug:
@@ -280,18 +285,21 @@ def basic_rl_heurs_lieu_saint_real_instances():
 
     # Dict rl params
     nb_episodes = 31
+    print("Nb episodes ", nb_episodes)
     dict_params_rl_agent = {"ag_type":"LRI",
                             "lr":0.05,
                             "eps":None,
                             "opt_params":{"initial_actions_estimates":None}}
+    #coeffs_list = [(0.33, 0.33, 0.34)]
     coeffs_list = [(0.33, 0.33, 0.34)]
+    print("Coefficients ", coeffs_list)
 
     # Test names
     ls_path_selector_types = ["rl_arc_based"]
     ls_path_card_criteria = ["one_for_each"]
     #ls_learning_rates = [0.01, 0.025, 0.05, 0.075, 0.1]
     ls_learning_rates = [0.01]
-    print(ls_learning_rates)
+    print("Learning rates ", ls_learning_rates)
     # Meta data
     res_key_metadata = ["path_type_selector", "path_card_criteria", 
                         "lr_rate", "coeffs_list"]
@@ -299,7 +307,10 @@ def basic_rl_heurs_lieu_saint_real_instances():
                           "multi_flow_residue", "prop_flow_support", 
                           "prop_shortest_paths", "transition_function_residue",
                           "reward"]
-    
+    no_transition_function = True
+    print("No trans func ", no_transition_function)
+    penalty_init_val, decay_param = 0, 0.99
+    print("Decay param ", decay_param)
 
     debug = False
     multi_process = True
@@ -327,7 +338,9 @@ def basic_rl_heurs_lieu_saint_real_instances():
         dict_results = {}
     else:
         dict_results = manager.dict()
-        ls_args = [] 
+        ls_args = []
+    
+    time.sleep(20)
     
     for ind_instance, _, _ in dict_instances:
         print("Treating instance ", ind_instance)
@@ -343,8 +356,8 @@ def basic_rl_heurs_lieu_saint_real_instances():
                         mfd_instance = deepcopy(dict_instances[(ind_instance, True, True)][0])
                         original_multi_flow = dict_instances[(ind_instance, True, True)][1]
                         
-                        opt_params = {"penalty_init_val":0, 
-                                    "decay_param":0.99}
+                        opt_params = {"penalty_init_val":penalty_init_val, 
+                                    "decay_param":decay_param}
                         
                         if path_card_criteria == "one_only":
                             reodering_pairs_policy_name = None
@@ -357,7 +370,7 @@ def basic_rl_heurs_lieu_saint_real_instances():
                             sys.exit()
 
                         # Process additional/optional parameters
-                        if coeff3 == 0:
+                        if no_transition_function or coeff3 == 0:
                             mfd_instance.original_update_transition_functions =  False
                             mfd_instance.update_transition_functions = False
 
@@ -425,7 +438,7 @@ def basic_rl_heurs_lieu_saint_real_instances():
 #Main function
 def main():
     test_names = {"simulated_instances", "lieu_saint_real_instances"}
-    test_name = "lieu_saint_real_instances"
+    test_name = "simulated_instances"
 
     if test_name == "simulated_instances":
         basic_rl_heurs_simulated_instances()

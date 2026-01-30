@@ -17,6 +17,7 @@ from utils.general_eval_msmd_metrics import (transition_function_residue,
                      multi_flow_residue,
                      proportion_size_flow_support,
                      flow_proportion_shortest_paths)
+import utils.metrics
 from msmd.multi_flow_desag_instance_utils import construct_instances
 from msmd.multi_flow_desag_general_solver import MultiFlowDesagSolver 
 from msmd.multi_flow_desag_transf_solver import MultiFlowDesagSolverTransF
@@ -25,18 +26,20 @@ from msmd.multi_flow_desag_transf_solver import MultiFlowDesagSolverTransF
 def baseline_heurs_simulated_instances():
     #print("Current directory : ", os.getcwd())
     # Directories
-    dir_name_graph_instance = "instance_generation/instances/capacity/"
-    dir_name_multi_flow_instance = "multi_flow_generation/transition_function_instances/"
-    path_results = "results/simulated/MFDS_vs_RL/temp/"+"results_baseline_heuristics_mock.pickle"
-
-    print("Instances construction ")
+    #dir_name_graph_instance = "instance_generation/instances/capacity/instances_nbnodes=95_pairs=20/"
+    #dir_name_multi_flow_instance = "multi_flow_generation/transition_function_instances/"
+    path_results = "results/temp/results_baseline_heuristics_95.pickle"
+    
+    print("Instances treatment ")
     # Construction of the instances
-    dict_instances = construct_instances (
+    constructed_instances_path = "data/simulated_data/complete_instances/node_pairs/data_instances_random_95_20.npy"
+    dict_instances = np.load(constructed_instances_path, allow_pickle = True).flatten()[0]
+    """dict_instances = construct_instances (
                         dir_name_graph_instance = dir_name_graph_instance, 
                         dir_name_multi_flow_instance = dir_name_multi_flow_instance,
                         nb_instances = 100,
                         ls_update_transport_time = [True],
-                        ls_update_transition_functions = [True])
+                        ls_update_transition_functions = [True])"""
 
     # Common parameters values
     max_path_length = 10000
@@ -133,18 +136,18 @@ def baseline_heurs_simulated_instances():
             unattributed_flow = [[0 for v in range(len(mfd_instance.aggregated_flow))] 
                                                         for u in range(len(mfd_instance.aggregated_flow))]
             # Process the metrics and store them in 'dict_result'
-            flow_val_res = flow_val_residue (flow_vals_desagg, 
+            flow_val_res = utils.metrics.flow_val_residue (flow_vals_desagg, 
                                             mfd_instance.original_flow_values)
-            flow_res = flow_residue (multi_flow_desag, 
+            flow_res = utils.metrics.flow_residue (multi_flow_desag, 
                                     unattributed_flow, 
                                     mfd_instance.original_aggregated_flow)
-            m_flow_res = multi_flow_residue (multi_flow_desag, 
+            m_flow_res = utils.metrics.multi_flow_residue (multi_flow_desag, 
                                             original_multi_flow, 
                                             mfd_instance.original_aggregated_flow)
-            prop_fsupp = proportion_size_flow_support (multi_flow_desag, 
+            prop_fsupp = utils.metrics.proportion_size_flow_support (multi_flow_desag, 
                                                     unattributed_flow, 
                                                     mfd_instance.original_aggregated_flow)
-            prop_sp = flow_proportion_shortest_paths (multi_flow_desag, 
+            prop_sp = utils.metrics.flow_proportion_shortest_paths (multi_flow_desag, 
                                                     unattributed_flow, 
                                                     mfd_instance.original_adj_mat, 
                                                     mfd_instance.ideal_transport_times, 
@@ -152,7 +155,7 @@ def baseline_heurs_simulated_instances():
             """if prop_sp == None and exit_on_none:
                 print(multi_flow_desag)
                 sys.exit()"""
-            trans_func_res = transition_function_residue (mfd_instance.original_transition_function, 
+            trans_func_res = utils.metrics.transition_function_residue (mfd_instance.original_transition_function, 
                                                         solver.constructed_transition_function, 
                                                         mfd_instance.original_aggregated_flow)
             print("Proportion of support arcs  ", prop_fsupp)
@@ -178,6 +181,7 @@ def baseline_heurs_simulated_instances():
                     "data":deepcopy(dict(dict_results))},
                     handle,
                     protocol = pickle.HIGHEST_PROTOCOL)    
+
 
 
 ################################################################################################
@@ -339,7 +343,7 @@ def baseline_heurs_real_instances(constructed_instances_path,
 #Main function
 def main():
     test_names = {"simulated_instances", "real_instances"}
-    test_name = "real_instances"
+    test_name = "simulated_instances"
 
     if test_name == "simulated_instances":
         baseline_heurs_simulated_instances()

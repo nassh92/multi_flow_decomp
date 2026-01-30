@@ -17,11 +17,15 @@ from instance_generation.capacity_generator import generate_capacities
 
 from instance_generation.time_costs_generator import generate_transport_time
 
-from instance_generation.pairs_utils import generate_origin_destination_pairs_local, generate_origin_destination_pairs_global, process_weight_pairs, PAIRS_GENERATION_TYPES
+from instance_generation.pairs_utils import (generate_random_origin_destination_pairs, 
+                                             generate_origin_destination_pairs_local, 
+                                             generate_origin_destination_pairs_global, 
+                                             process_weight_pairs, 
+                                             PAIRS_GENERATION_TYPES)
 
 from instance_generation.display_utils_gen import display_instance
 
-from instance_generation.real_instance.saint_lieu_instance_generator import generate_instance_saint_lieu
+from instance_generation.real_instances_wei_based.saint_lieu_instance_generator import generate_instance_saint_lieu
 
 
 
@@ -55,18 +59,23 @@ def generate_random_instance(nb_nodes, grid_size, r, nb_arcs, max_nb_draws_gen_g
     transport_times = generate_transport_time(raw_transport_times, spanning_tree_pred = span_tree_pred, fraction = transport_time_fraction)
 
     # Generate the pairs and the weights following the value of 'pairs_generation'
-    if pairs_generation == "degree" or pairs_generation == "capacity":
+    if pairs_generation == "random":
+        # Generate the weights and the pairs
+        pairs = generate_random_origin_destination_pairs (nb_pairs, adj_mat, nb_max_draws = nb_max_draws_pairs)
+        weight_pairs = process_weight_pairs(pairs, adj_mat, pairs_selection = pairs_generation)
+    
+    elif pairs_generation == "degree" or pairs_generation == "capacity":
         # Calculate the matrix which will serve to generate the pairs
         graph_mat = adj_mat if pairs_generation == "degree" else capacities if pairs_generation == "capacity" else None
         # Generate the weights and the pairs
         pairs = generate_origin_destination_pairs_local (nb_pairs, graph_mat, nb_max_draws = nb_max_draws_pairs)
-        weight_pairs = process_weight_pairs(pairs, graph_mat, pairs_generation = pairs_generation) # optional
+        weight_pairs = process_weight_pairs(pairs, graph_mat, pairs_selection = pairs_generation) # !! optional !!
     
     elif pairs_generation == "min_cut":
         # Generate the pairs and the weights
         pairs = generate_origin_destination_pairs_global (nb_pairs, adj_mat, capacities, nb_max_draws = nb_max_draws_pairs,
                                                           transport_times = transport_times)
-        weight_pairs = process_weight_pairs(pairs, [adj_mat, capacities, transport_times], pairs_generation = pairs_generation) # optional
+        weight_pairs = process_weight_pairs(pairs, [adj_mat, capacities, transport_times], pairs_selection = pairs_generation) # optional
 
     elif pairs_generation == "all":
         # Generate the pairs and the weights
@@ -77,9 +86,9 @@ def generate_random_instance(nb_nodes, grid_size, r, nb_arcs, max_nb_draws_gen_g
                                                               transport_times = transport_times)
         
         # optional
-        weight_pairs_degree = process_weight_pairs(pairs, adj_mat, pairs_generation = "degree")
-        weight_pairs_capacity = process_weight_pairs(pairs, capacities, pairs_generation = "capacity")
-        weight_pairs_mincut = process_weight_pairs(pairs, [adj_mat, capacities,  transport_times], pairs_generation = "min_cut")
+        weight_pairs_degree = process_weight_pairs(pairs, adj_mat, pairs_selection = "degree")
+        weight_pairs_capacity = process_weight_pairs(pairs, capacities, pairs_selection = "capacity")
+        weight_pairs_mincut = process_weight_pairs(pairs, [adj_mat, capacities,  transport_times], pairs_selection = "min_cut")
     
     # Construct and return the dict containing all the informations related to the generated instance (follwing the value of 'pairs_generation') 
     return_dict = {"adj_mat":adj_mat,
@@ -147,16 +156,16 @@ def main():
                   "read_instance", 
                   "generate_weights_real_instance"}
 
-    test_name = "multiple_generate_instances"
+    test_name = "generate_instances"
 
     if test_name not in test_names:
         print("Test name unrecognized.")
         sys.exit()
 
     if test_name == "generate_instances":
-        generate_instances(dir_name = "instance_generation/instances/", 
+        generate_instances(dir_name = "data/simulated_data/graph_instances/random/instances_nbnodes=95_pairs=20/", 
                         nb_instances = 100, 
-                        nb_nodes = 75, 
+                        nb_nodes = 95, 
                         grid_size = 100, 
                         r = 25, 
                         nb_arcs = 250, 
@@ -165,12 +174,13 @@ def main():
                         base_capacity = 10, 
                         capacity_factor = 3, 
                         transport_time_fraction = 0.33, 
-                        nb_pairs = 15, 
+                        nb_pairs = 20, 
                         nb_max_draws_pairs = 300,
                         distance_type = "euclidean",
-                        pairs_generation = "capacity",
+                        pairs_generation = "random",
                         pairs_criteria = 0,
                         print_ = False)
+    
     elif test_name == "multiple_generate_instances":
         nb_nodes_ls = [55, 75, 95]
         nb_pairs_ls = [10, 15, 20]

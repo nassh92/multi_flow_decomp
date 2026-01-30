@@ -1,11 +1,13 @@
 import osmnx as ox
 import pickle
+import math
 from functools import reduce
 import pandas as pd
 from statistics import median
 from shapely.geometry import LineString, Point, MultiLineString
 from shapely.ops import linemerge, substring
 import sys
+
 
 def fill_lanes_directional(g):
     """
@@ -146,6 +148,22 @@ def fill_lanes_directional(g):
     """
 
 
+def haversine(lon1, lat1, lon2, lat2):
+    R = 6371000  # Earth radius in meters
+
+    lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = math.sin(dlat / 2)**2 + \
+        math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
+
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return R * c  # meters
+
+
 def convert_attr_str_to_int(g):
     # Convert the attributes "maxspeed", "length" and "lanes"
     # from str to numerical data types
@@ -219,10 +237,13 @@ def fill_attributes(g, default_vals):
         if "geometry" not in g[u][v][k]:
             coordinates = [(g.nodes[u]["x"], g.nodes[u]["y"]),
                            (g.nodes[v]["x"], g.nodes[v]["y"])]
+            #print(haversine(g.nodes[u]["x"], g.nodes[u]["y"], 
+            #                g.nodes[v]["x"], g.nodes[v]["y"]))
             g[u][v][k]["geometry"] = LineString(coordinates)
 
         if "length" not in g[u][v][k]:
-                g[u][v][k]["length"] = g[u][v][k]["geometry"].length
+            g[u][v][k]["length"] = haversine(g.nodes[u]["x"], g.nodes[u]["y"], 
+                                             g.nodes[v]["x"], g.nodes[v]["y"])
 
         if "highway" in g[u][v][k] and isinstance(g[u][v][k]["highway"], str):
             if "lanes" not in g[u][v][k]:
@@ -240,7 +261,6 @@ def fill_attributes(g, default_vals):
                 g[u][v][k]["maxspeed"] = default_vals["maxspeed"]
 
 
-
 def pre_process_attributes(g):
     # Convert strings to integers
     convert_attr_str_to_int(g)
@@ -248,11 +268,10 @@ def pre_process_attributes(g):
     # Fille the lanes
     # fill_lanes_directional(g)
 
-    # Convert the attributes "maxspeed", "length" and "lanes"
+    # Fill missing attributes of "maxspeed", "length" and "lanes"
     fill_attributes(g, 
                     {"lanes":1, 
                      "maxspeed":30})    
-    
   
 
 def get_osm_map(area_name, 

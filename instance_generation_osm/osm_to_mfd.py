@@ -539,7 +539,7 @@ def pre_process_networkx(graph_path_file,
                                         graph, 
                                         arc_attribute_vals = capacities,
                                         predecessors_list = construct_predecessors_list(graph),
-                                        pairs_generation = "capacity")
+                                        pairs_selection = "capacity")
 
     # Affichage
     if generate_figure is not None and generate_figure[1]:
@@ -634,6 +634,8 @@ def construct_real_instances (graph_nx_path_file,
                                                                      raw_transport_times, 
                                                                      all_pairs, 
                                                                      return_multi_flow_dict)
+        print(return_dict_ajusted_data["transport_times"])
+        sys.exit()
         
         # Construct mfd_instance
         mfd_instance = MultiFlowDesagInstance(deepcopy(return_dict_ajusted_data["corr_graph"]), 

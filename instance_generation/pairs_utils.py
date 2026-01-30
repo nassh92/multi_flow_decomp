@@ -13,7 +13,7 @@ from utils.shortest_path_solvers import DijkstraShortestPathsSolver
 from utils.graph_utils import in_degree, out_degree, sum_in_attributes, sum_out_attributes, init_graph_arc_attribute_vals, get_arcs
 
 
-PAIRS_GENERATION_TYPES = {"degree", "capacity", "min_cut", "all"}
+PAIRS_GENERATION_TYPES = {"random", "degree", "capacity", "min_cut", "all"}
 
 
 ###############################################################  Process the weights of the O/D pairs ################################################
@@ -21,16 +21,19 @@ def process_weight_pairs(pairs,
                          graph, 
                          arc_attribute_vals = None,
                          predecessors_list = None,
-                         pairs_generation = "degree"):
+                         pairs_selection = "degree"):
     """
     "graph_mat" can contain the adjacency matrix or the capacity matrix if 'pairs_generation == "degree"' or 'pairs_generation == "capacity"'.
     If 'pairs_generation == "min_cut"', graph_mat contains both the adjacency matrix and the capacities.
     """
-    if  pairs_generation not in PAIRS_GENERATION_TYPES:
-        print("Error, pairs_generation unrecognized. ", pairs_generation)
+    if  pairs_selection not in PAIRS_GENERATION_TYPES:
+        print("Error, pairs_selection unrecognized. ", pairs_selection)
         sys.exit()
     
-    if pairs_generation == "degree":
+    if pairs_selection == "random":
+        weight_pairs = [1 for _ in pairs]
+
+    elif pairs_selection == "degree":
         # All sources
         sources = [pair[0] for pair in pairs]
         # All destinations
@@ -42,7 +45,7 @@ def process_weight_pairs(pairs,
         # Weights of the pairs
         weight_pairs = [weight_sources[pair[0]]+weight_destinations[pair[1]] for pair in pairs]
     
-    elif pairs_generation == "capacity":
+    elif pairs_selection == "capacity":
         # All sources
         sources = [pair[0] for pair in pairs]
         # All destinations
@@ -59,7 +62,7 @@ def process_weight_pairs(pairs,
         # Weights of the pairs
         weight_pairs = [weight_sources[pair[0]]+weight_destinations[pair[1]] for pair in pairs]
 
-    elif pairs_generation == "min_cut":
+    elif pairs_selection == "min_cut":
         # Fetch the relevant graphs and process the weights of the pairs as their associated minimum cut value (max flow between the pairs)   
         capacities, transport_times, weight_pairs = arc_attribute_vals[0], arc_attribute_vals[1], []
         # Process the max flow between the source and destination of each pair in 'pairs'
@@ -86,6 +89,45 @@ def process_weight_pairs(pairs,
 
 
 
+
+##################  
+#######                                Generate the O/D pairs randoimly
+##################
+def generate_random_origin_destination_pairs (nb_pairs, graph_mat, nb_max_draws):
+    """
+    graph_mat can either be the adjacency matrix or the weights capacities 
+    """
+    ###################################################################################################
+    # Modify this function to take into account random pair selection
+    ###################################################################################################
+    # The weights associated to a node being a source calculated as the outdegree of the node
+    weight_sources = [int(any(graph_mat[i][:])) for i in range(len(graph_mat))]
+    # The weights associated to a node being a destination calculated as the indegree of the node
+    weight_destinations = [int(any(graph_mat[i][j] for i in range(len(graph_mat)))) for j in range(len(graph_mat))]
+    # Choose randomly 'nb_pairs' of source-destination pairs according to 'weight_sources' and 'weight_destinations'
+    pairs, num_draw = [], 0
+    while len(pairs) < nb_pairs and num_draw < nb_max_draws:
+        # Chose randomly a pair
+        source = random.choices(list(range(len(graph_mat))), weights=weight_sources, k=1)[0]
+        destination = random.choices(list(range(len(graph_mat))), weights=weight_destinations, k=1)[0]
+        num_draw += 1
+        # A new pair is drawn as long as the last drawn pair has already been chosen or the source is the same as the destination (with 
+        # a maximum of 'nb_max_draws' draws)
+        while ((source, destination) in pairs or source == destination) and num_draw < nb_max_draws:
+            source = random.choices(list(range(len(graph_mat))), weights=weight_sources, k=1)[0]
+            destination = random.choices(list(range(len(graph_mat))), weights=weight_destinations, k=1)[0]
+            num_draw += 1
+        # The last drawn pair is added if it has not already been generated (not in 'pairs') and the source is different from the destination
+        if (source, destination) not in pairs and source != destination: pairs.append((source, destination))
+
+    if len(pairs) == nb_pairs:
+        return pairs
+    else:
+        print("Could not generate enough pairs.")
+        sys.exit()
+
+
+
 ##################  
 #######                                Generate the O/D pairs using the degrees with adjacency matrix or the capacities with the matrix of capacities
 ##################
@@ -93,6 +135,9 @@ def generate_origin_destination_pairs_local (nb_pairs, graph_mat, nb_max_draws):
     """
     graph_mat can either be the adjacency matrix or the weights capacities 
     """
+    ###################################################################################################
+    # Modify this function to take into account random pair selection
+    ###################################################################################################
     # The weights associated to a node being a source calculated as the outdegree of the node
     weight_sources = [sum(graph_mat[i][:]) for i in range(len(graph_mat))]
     # The weights associated to a node being a destination calculated as the indegree of the node

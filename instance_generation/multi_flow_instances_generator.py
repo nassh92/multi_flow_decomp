@@ -34,7 +34,7 @@ def generate_multi_flow_instance(adj_mat,
                                  pairs, desired_flow_values, 
                                  min_fl = 1, 
                                  nb_it_print = None,
-                                 pairs_generation = "capacity",
+                                 pairs_selection = "capacity",
                                  weight_pairs = None,
                                  return_transition_function = False):
     """
@@ -46,7 +46,7 @@ def generate_multi_flow_instance(adj_mat,
 
     # Process the weights associated to each pair
     if weight_pairs is None: 
-        weight_pairs = process_weight_pairs(pairs, capacities, pairs_generation = pairs_generation)
+        weight_pairs = process_weight_pairs(pairs, capacities, pairs_selection = pairs_selection)
 
     # Initializations
     cpt_saturated, nb_it = 0, 0
@@ -68,8 +68,8 @@ def generate_multi_flow_instance(adj_mat,
 
         # Create a DijkstraShortestPathsSolver instance and solve it (by running the dijkstra algorithm) 
         dijkstra_solver = DijkstraShortestPathsSolver(source = source,
-                                                      adj_mat = adj_mat,
-                                                      weight_mat = transport_times, 
+                                                      graph = adj_mat,
+                                                      weights = transport_times, 
                                                       mode = "min_distance")
         dijkstra_solver.run_dijkstra()
         
@@ -146,7 +146,7 @@ def construct_multi_flow_instances_from_saved_graph_instances(dir_data_name,
                                                               desired_flow_values = None,
                                                               min_fl = 1, 
                                                               nb_it_print = None,
-                                                              pairs_generation = "capacity",
+                                                              pairs_selection = "capacity",
                                                               return_transition_function = False):
     """
         Generate a number of multiflow instances from network instances files contained in directory 'dir_name'
@@ -172,7 +172,7 @@ def construct_multi_flow_instances_from_saved_graph_instances(dir_data_name,
                                                    pairs, desired_flow_values, 
                                                    min_fl = min_fl, 
                                                    nb_it_print = nb_it_print,
-                                                   pairs_generation = pairs_generation,
+                                                   pairs_selection = pairs_selection,
                                                    return_transition_function = return_transition_function)
         saved_dict = {"matrice":return_dict["multi_flow"],
                       "flow":[(pairs[i][0], pairs[i][1], return_dict["flow_values"][i]) for i in range(len(pairs))],
@@ -186,7 +186,7 @@ def construct_complete_multi_flow_instances(dir_save_name,
                                             desired_flow_values = None,
                                             min_fl = 1, 
                                             nb_it_print = None,
-                                            pairs_generation = "capacity",
+                                            pairs_selection = "capacity",
                                             return_transition_function = False):
     """
         Generate a number of multiflow instances by first constructing a network instances and then the multiflow instances 
@@ -233,7 +233,7 @@ def construct_complete_multi_flow_instances(dir_save_name,
                                                    pairs, desired_flow_values, 
                                                    min_fl = min_fl, 
                                                    nb_it_print = nb_it_print,
-                                                   pairs_generation = pairs_generation,
+                                                   pairs_selection = pairs_selection,
                                                    return_transition_function = return_transition_function)
         
         np.save(os.path.join(dir_save_name, "multi_flow_instance_"+str(id_graph_instance)), return_dict)
@@ -319,15 +319,20 @@ def main():
                   "read_transition_func",
                   "process_statistics"}
 
-    test_name = "multi_generate_multi_flow_instances_from_saved_graph_instances"
+    test_name = "generate_multi_flow_instances_from_saved_graph_instances"
 
     if test_name not in test_names:
         print("Test name unrecognized.")
         sys.exit()
 
     if test_name == "generate_multi_flow_instances_from_saved_graph_instances":
-        construct_multi_flow_instances_from_saved_graph_instances(dir_data_name = "instance_generation/instances/capacity/",
-                                                                  dir_save_name = "multi_flow_generation/transition_function_instances/", 
+        #dir_data_name = "instance_generation/instances/capacity/"
+        dir_data_name = "data/simulated_data/graph_instances/random/instances_nbnodes=95_pairs=20/"
+        #dir_save_name = "multi_flow_generation/transition_function_instances/"
+        dir_save_name = "data/simulated_data/complete_instances/multi_flow_instances/random/nb_nodes=95_pairs=20/"
+        construct_multi_flow_instances_from_saved_graph_instances(dir_data_name = dir_data_name,
+                                                                  dir_save_name = dir_save_name,
+                                                                  pairs_selection = "random", 
                                                                   return_transition_function = True)
      
     elif test_name == "multi_generate_multi_flow_instances_from_saved_graph_instances":

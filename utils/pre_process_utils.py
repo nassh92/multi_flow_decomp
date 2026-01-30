@@ -3,7 +3,7 @@ import os
 import sys
 sys.path.append(os.getcwd())
 from instance_generation.random_instance_generator import read_data
-from instance_generation.real_instance.saint_lieu_instance_generator import generate_instance_saint_lieu
+from instance_generation.real_instances_wei_based.saint_lieu_instance_generator import generate_instance_saint_lieu
 from utils.graph_utils import init_graph_arc_attribute_vals
 
 
