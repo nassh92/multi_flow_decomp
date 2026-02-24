@@ -10,8 +10,10 @@ import matplotlib.pyplot as plt
 
 import sys
 
+import math
+
 sys.path.append(os.getcwd())
-from instance_generation.geometric_utils import DISTANCE_TYPES, generate_nodes, get_near_nodes, distance
+from instance_generation.geometric_utils import DISTANCE_TYPES, generate_nodes, get_near_nodes, distance, sort_candidate_neighbours
 
 from instance_generation.time_costs_generator import generate_raw_times
 
@@ -19,17 +21,28 @@ from instance_generation.intersection_utils import intersect
 
 from instance_generation.connexity import is_connected
 
+from utils.graph_utils import get_neighbours, create_isolated_nodes_graph, add_arc
 
 
-def generate_random_planar_graph(nb_nodes, grid_size, r, nb_arcs, max_nb_draws, max_nb_tries, distance_type = "euclidean", print_ = False):
-    # Construct an adjacency matrix whose entries are intialized to 0
-    adj_mat = [[0 for i in range(nb_nodes)] for j in range(nb_nodes)]
 
+def generate_random_planar_graph(nb_nodes, 
+                                 grid_size, 
+                                 r, 
+                                 nb_arcs, 
+                                 max_nb_draws, 
+                                 max_nb_tries, 
+                                 distance_type = "euclidean",
+                                 max_nb_neighbours = None, 
+                                 matrix_representation = True,
+                                 print_ = False):
     # Atempt to generate a planar random graph for a maximum of 'max_nb_tries' times
     nb_tries = 0
     while nb_tries < max_nb_tries:
         # Generate the nodes of the graph
         nodes = generate_nodes(grid_size, nb_nodes)
+        
+        # Construct an adjacency matrix whose entries are intialized to 0
+        graph = create_isolated_nodes_graph(nb_nodes, matrix_representation = matrix_representation)
 
         # Generate the arcs of the planar random graph
         nb_draws, arcs, points = 0, set(), list(nodes.keys())
@@ -46,11 +59,93 @@ def generate_random_planar_graph(nb_nodes, grid_size, r, nb_arcs, max_nb_draws, 
                 # Select the second point of the arc in case P has neighbours with distance 'r' 
                 Q = candidate_neighbours[random.randint(0, len(candidate_neighbours)-1)]
 
+                # Process the condition on the number of neighbours
+                nb_neighbours_not_a_problem = True
+                if max_nb_neighbours is not None:
+                    nb_neighbours = max(len(get_neighbours(graph, nodes[P])), 
+                                        len(get_neighbours(graph, nodes[Q])))
+                    if nb_neighbours >= max_nb_neighbours:
+                        nb_neighbours_not_a_problem = False
+
                 # Add arc [P, Q] to 'arcs' if [P, Q] does not intersect with any of the arcs in 'arcs'
-                if (P, Q) not in arcs and (Q, P) not in arcs and not intersect((P, Q), arcs):
+                if nb_neighbours_not_a_problem and (P, Q) not in arcs and (Q, P) not in arcs and not intersect((P, Q), arcs):
                     arcs.add((P, Q))
-                    adj_mat[nodes[P]][nodes[Q]] = 1
-                    adj_mat[nodes[Q]][nodes[P]] = 1
+                    add_arc(graph, nodes[P], nodes[Q])
+                    add_arc(graph, nodes[Q], nodes[P])
+
+            nb_draws += 1
+        
+        # If the graph generated is connected return it as with the transport times and the segments else increment the numbers of tries
+        if is_connected (graph):
+            raw_transport_times = generate_raw_times (nb_nodes, nodes, arcs, distance_type = "euclidean")
+            if raw_transport_times: return graph, arcs, nodes, raw_transport_times
+        nb_tries += 1
+    
+    return False, False, False, False
+
+
+
+def generate_random_small_world_like_planar_graph(nb_nodes,
+                                                  grid_size, 
+                                                  r, 
+                                                  nb_arcs, 
+                                                  max_nb_draws, 
+                                                  max_nb_tries,
+                                                  max_nb_neighbours = None, 
+                                                  distance_type = "euclidean",
+                                                  sorting_criteria = "distance",
+                                                  matrix_representation = True,
+                                                  print_ = False):
+    # Atempt to generate a planar random graph for a maximum of 'max_nb_tries' times
+    nb_tries = 0
+    while nb_tries < max_nb_tries:
+        # Generate the nodes of the graph
+        nodes = generate_nodes(grid_size, nb_nodes)
+
+        # Construct an adjacency matrix whose entries are intialized to 0
+        graph = create_isolated_nodes_graph(nb_nodes, matrix_representation = matrix_representation)
+
+        # Generate the arcs of the planar random graph
+        nb_draws, arcs, points = 0, set(), list(nodes.keys())
+        while len(arcs) < nb_arcs and nb_draws < max_nb_draws:
+            # Affichage du numéro de tirage 'nb_draws'
+            if print_ and nb_draws % 10 == 0:
+                print("The try number / Number of nodes pairs drawn ", nb_tries, " / ",nb_draws)
+
+            # Select a new candidate arc to be added in 'arcs'
+            P = points[random.randint(0, len(points)-1)]
+            candidate_neighbours = get_near_nodes(P, 
+                                                  points, 
+                                                  r, 
+                                                  distance_type = distance_type)
+            opt_params = {"adj_mat":adj_mat, "nodes":nodes}
+            candidate_neighbours = sort_candidate_neighbours(P, 
+                                                             candidate_neighbours, 
+                                                             distance_type = distance_type, 
+                                                             sorting_criteria = sorting_criteria,
+                                                             opt_params = opt_params)
+
+            if len(candidate_neighbours) != 0:
+                # Select the second point of the arc in case P has neighbours with distance 'r'
+                # Take the closest avaible point
+                for ix in range(len(candidate_neighbours)):
+                    # Select the the candidate neighbour of index 'ix' 
+                    Q = candidate_neighbours[ix]
+                    
+                    # Process the condition on the number of neighbours
+                    nb_neighbours_not_a_problem = True
+                    if max_nb_neighbours is not None:
+                        nb_neighbours = max(len(get_neighbours(adj_mat, nodes[P])), 
+                                            len(get_neighbours(adj_mat, nodes[Q])))
+                        if nb_neighbours >= max_nb_neighbours:
+                            nb_neighbours_not_a_problem = False
+
+                    # Add arc [P, Q] to 'arcs' if [P, Q] does not intersect with any of the arcs in 'arcs'
+                    if nb_neighbours_not_a_problem and (P, Q) not in arcs and (Q, P) not in arcs and not intersect((P, Q), arcs):
+                        arcs.add((P, Q))
+                        adj_mat[nodes[P]][nodes[Q]] = 1
+                        adj_mat[nodes[Q]][nodes[P]] = 1
+                        break
 
             nb_draws += 1
         

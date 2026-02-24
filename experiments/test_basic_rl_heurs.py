@@ -49,6 +49,8 @@ def run_experiment (mfd_instance,
                     pair_criteria, 
                     path_card_criteria,
                     ls_coeff,
+                    successor_selector_type = "exponential_decay",
+                    rl_data_init_type = "uniform",
                     matrix_representation = True):
     # Create an RL multi flow desaggregation solver and desaggregate the multi flow
     solver = MultiFlowDesagRLSolver(mfd_instance = mfd_instance,
@@ -61,8 +63,8 @@ def run_experiment (mfd_instance,
                                     maximal_flow_amount = maximal_flow_amount,
                                     reodering_pairs_policy_name = reodering_pairs_policy_name,
                                     exclude_chosen_nodes = False,
-                                    successor_selector_type = "exponential_decay",
-                                    rl_data_init_type = "uniform",
+                                    successor_selector_type = successor_selector_type,
+                                    rl_data_init_type = rl_data_init_type,
                                     store_perfs_evol_path = None,
                                     ignore_conflicts = False,
                                     matrix_representation = matrix_representation,
@@ -90,21 +92,21 @@ def run_experiment (mfd_instance,
 ###################################   Tests   ###################################
 def basic_rl_heurs_simulated_instances():
     from msmd.multi_flow_desag_instance_utils import construct_instances
-    print("Satring main.")
+    print("Starting main.")
     # Construction of the instances
     #constructed_instances_path = "data/simulated_data/complete_instances/node_pairs/data_instances_random_75_15.npy"
-    constructed_instances_path = "data/data_instances_random_95_20.npy"
+    constructed_instances_path = "data/data_instances_small_world_200_20.npy"
     print(constructed_instances_path)
     time.sleep(20)
     dir_name_graph_instance = "data/simulated_data/instances/random/instances_nbnodes=95_pairs=20/"
     dir_name_multi_flow_instance = "multi_flow_generation/transition_function_instances/"
     #path_results = "results/simulated/MFDS_vs_RL/results_test/"+"results_rl_heuristics.npy"
-    path_results = "results/"+"results_rl_heuristics_random_95.pickle"
+    path_results = "results/"+"results_rl_heuristics_discount_by_length_smallworld.pickle"
 
     # Common parameters values
     max_path_length = 10000
     nb_max_tries = 50000
-    max_nb_tries_find_path = 10
+    max_nb_tries_find_path = 20
     maximal_flow_amount = 1
     pair_criteria = "max_remaining_flow_val"
 
@@ -122,7 +124,10 @@ def basic_rl_heurs_simulated_instances():
     ls_path_card_criteria = ["one_only", "one_for_each"]
     #ls_learning_rates = [0.01, 0.025, 0.05, 0.075, 0.1]
     ls_learning_rates = [0.01]
-    
+    # Successor selector types
+    successor_selector_type = "standard"
+    rl_data_init_type = "uniform"
+
     # Meta data
     res_key_metadata = ["path_type_selector", "path_card_criteria", 
                         "lr_rate", "coeffs_list"]
@@ -131,7 +136,7 @@ def basic_rl_heurs_simulated_instances():
                           "prop_shortest_paths", "transition_function_residue",
                           "reward"]
     
-
+    
     debug = False
     multi_process = True
     if debug:
@@ -164,7 +169,7 @@ def basic_rl_heurs_simulated_instances():
     else:"""
     print("Fetch instances.")
     dict_instances = np.load(constructed_instances_path, 
-                                allow_pickle = True).flatten()[0]    
+                            allow_pickle = True).flatten()[0]    
 
     # Main
     if debug:
@@ -188,7 +193,10 @@ def basic_rl_heurs_simulated_instances():
                         original_multi_flow = dict_instances[(ind_instance, True, True)][1]
                         
                         opt_params = {"penalty_init_val":0, 
-                                    "decay_param":0.99}
+                                    "decay_param":1.0,
+                                    "reward_discount_type":"discount_by_length",
+                                    "penalize_circuits":True,
+                                    "circuit_penalty_param":0.0005}
                         
                         if path_card_criteria == "one_only":
                             reodering_pairs_policy_name = None
@@ -226,7 +234,9 @@ def basic_rl_heurs_simulated_instances():
                                             opt_params,
                                             pair_criteria, 
                                             path_card_criteria,
-                                            (coeff1, coeff2, coeff3))
+                                            (coeff1, coeff2, coeff3),
+                                            successor_selector_type = successor_selector_type,
+                                            rl_data_init_type = rl_data_init_type)
                         else:
                             ls_args.append((mfd_instance,
                                             dict_results,
@@ -271,15 +281,17 @@ def basic_rl_heurs_lieu_saint_real_instances():
     # Construction of the instances
     #constructed_instances_path = "multi_flow_generation_wei/data/data_instances.npy"
     #constructed_instances_path = "data/real_data/pre_processed/LieuSaint/data_instances.npy"
-    constructed_instances_path = "data/data_instances.npy"
+    #constructed_instances_path = "data/data_instances.npy"
+    constructed_instances_path = "data/data_instances_small_world_200_20.npy"
     #path_results = "results/simulated/MFDS_vs_RL/results_test/"+"results_rl_heuristics.npy"
     #path_results = "results/"+"results_lieu_saint_rl_heuristics.pickle"
-    path_results = "results/"+"results_lieu_saint_rl_heuristics2.pickle"
-
+    path_results = "results/"+"results_versailles_rl_heuristics.pickle"
+    print(constructed_instances_path)
+    print(path_results)
     # Common parameters values
     max_path_length = 10000
     nb_max_tries = 50000
-    max_nb_tries_find_path = 10
+    max_nb_tries_find_path = 20
     maximal_flow_amount = 1
     pair_criteria = "max_remaining_flow_val"
 
@@ -307,7 +319,7 @@ def basic_rl_heurs_lieu_saint_real_instances():
                           "multi_flow_residue", "prop_flow_support", 
                           "prop_shortest_paths", "transition_function_residue",
                           "reward"]
-    no_transition_function = True
+    no_transition_function = False
     print("No trans func ", no_transition_function)
     penalty_init_val, decay_param = 0, 0.99
     print("Decay param ", decay_param)

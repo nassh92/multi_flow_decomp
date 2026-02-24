@@ -10,11 +10,15 @@ import random
 
 import itertools
 
+import math
+
 # 'C:\\Users\\HADDAM\\Documents\\Python Scripts\\multi_flow_decomp\\'
 sys.path.append(os.getcwd())
 from utils.shortest_path_solvers import DijkstraShortestPathsSolver
 
 from instance_generation.pairs_utils import process_weight_pairs
+
+from instance_generation.connexity import is_connected
 
 from instance_generation.random_instance_generator import read_data, generate_random_instance
 
@@ -46,7 +50,10 @@ def generate_multi_flow_instance(adj_mat,
 
     # Process the weights associated to each pair
     if weight_pairs is None: 
-        weight_pairs = process_weight_pairs(pairs, capacities, pairs_selection = pairs_selection)
+        weight_pairs = process_weight_pairs(pairs, 
+                                            adj_mat, 
+                                            arc_attribute_vals = capacities,
+                                            pairs_selection = pairs_selection)
 
     # Initializations
     cpt_saturated, nb_it = 0, 0
@@ -72,7 +79,7 @@ def generate_multi_flow_instance(adj_mat,
                                                       weights = transport_times, 
                                                       mode = "min_distance")
         dijkstra_solver.run_dijkstra()
-        
+
         # For the selected pair, augment the flow along a path from the source of the pair to its destination if there is a path
         if dijkstra_solver.path_estimates[destination] != float("inf"):
             # Return a random path from the source to the destination
@@ -82,7 +89,7 @@ def generate_multi_flow_instance(adj_mat,
             # Compute the flow amount as the minimum the capacity of the selected path, the remaining flow value of the pair and 'min_fl'
             path_capacity = min(capacities[path[i]][path[i+1]] for i in range(len(path)-1))
             fl_amount = min(path_capacity, desired_flow_values[id_pair], min_fl)
-
+            
             # Increase the flow along the arcs of the selected path by 'fl_amount' units for the corresponding pair and 
             # decrease the capacities of those arcs
             if return_transition_function: # initialization fo the case where 'return_transition_function' is enabled 
@@ -131,6 +138,22 @@ def generate_multi_flow_instance(adj_mat,
         # Increment the number of iterations
         nb_it += 1
 
+    if all(flow_val == 0 for flow_val in generated_flow_values):
+        print("Connexity ", is_connected (adj_mat))
+        for u in range(len(adj_mat)):
+            for v in range(len(adj_mat)):
+                if adj_mat[u][v] == 1 and adj_mat[v][u] < 1:
+                    print(u, v, " Not symmetric")
+        source, dest = pairs[id_pair]
+        print("Chemin de la source vers la destination ", dijkstra_solver.path_estimates[dest])
+        print(dijkstra_solver.path_estimates)
+        print(pairs[id_pair])
+        print(adj_mat[source])
+        print([adj_mat[u][dest] for u in range(len(adj_mat))])
+        print()
+        print("All flow values are 0.")
+        sys.exit()
+
     # Construct the return dict and return it
     return_dict = {}
     return_dict["multi_flow"] = multi_flow
@@ -166,7 +189,7 @@ def construct_multi_flow_instances_from_saved_graph_instances(dir_data_name,
 
         if desired_flow_values is None: # If the desired flow values is not None we take the default value of the 'desired_flow_values' 
             desired_flow_values = [float("inf") for _ in range(len(pairs))]
-
+        print("Weight pairs ", weight_pairs)
         return_dict = generate_multi_flow_instance(adj_mat, capacities, 
                                                    transport_times, 
                                                    pairs, desired_flow_values, 
@@ -327,12 +350,12 @@ def main():
 
     if test_name == "generate_multi_flow_instances_from_saved_graph_instances":
         #dir_data_name = "instance_generation/instances/capacity/"
-        dir_data_name = "data/simulated_data/graph_instances/random/instances_nbnodes=95_pairs=20/"
+        dir_data_name = "data/simulated_data/graph_instances/smal_world_neigh_dist_capacity/instances_nbnodes=200_pairs=20/"
         #dir_save_name = "multi_flow_generation/transition_function_instances/"
-        dir_save_name = "data/simulated_data/complete_instances/multi_flow_instances/random/nb_nodes=95_pairs=20/"
+        dir_save_name = "data/simulated_data/complete_instances/multi_flow_instances/small_world_neigh_dist_capacity/nb_nodes=200_pairs=20/"
         construct_multi_flow_instances_from_saved_graph_instances(dir_data_name = dir_data_name,
                                                                   dir_save_name = dir_save_name,
-                                                                  pairs_selection = "random", 
+                                                                  pairs_selection = "capacity", 
                                                                   return_transition_function = True)
      
     elif test_name == "multi_generate_multi_flow_instances_from_saved_graph_instances":

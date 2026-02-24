@@ -395,13 +395,21 @@ def return_augmented_interest_points(g, list_interest_points):
     return augmented_ls_point_of_interests
 
 
-def generate_origin_destination_pairs (g, nb_pairs, ls_IPs, car_size = 1, nb_max_draws = 10):
+def generate_origin_destination_pairs (g, nb_pairs, ls_IPs, 
+                                       pairs_generation_type = "capacity", 
+                                       car_size = 1, nb_max_draws = 10):
     # get the node list
     IP_node_list = [interest_point["id"] for interest_point in ls_IPs]
-    # The weights associated to a node being a source calculated as the outdegree capacity of the node
-    weight_sources = [sum(math.ceil(g[u][v]["lanes"] * g[u][v]["length"] / car_size) for v in list(g.nodes) if g.has_edge(u, v)) for u in IP_node_list]
-    # The weights associated to a node being a destination calculated as the indegree capacity of the node
-    weight_destinations = [sum(math.ceil(g[u][v]["lanes"] * g[u][v]["length"]) / car_size for u in list(g.nodes) if g.has_edge(u, v)) for v in IP_node_list]
+    if pairs_generation_type == "capacity":
+        # The weights associated to a node being a source calculated as the outdegree capacity of the node
+        weight_sources = [sum(math.ceil(g[u][v]["lanes"] * g[u][v]["maxspeed"] * 10 / car_size) for v in list(g.nodes) if g.has_edge(u, v)) for u in IP_node_list]
+        # The weights associated to a node being a destination calculated as the indegree capacity of the node
+        weight_destinations = [sum(math.ceil(g[u][v]["lanes"] * g[u][v]["maxspeed"] * 10 / car_size) for u in list(g.nodes) if g.has_edge(u, v)) for v in IP_node_list]
+    elif pairs_generation_type == "random":
+        # The weights associated to a node being a source calculated as uniform weights
+        weight_sources = [int(sum(math.ceil(g[u][v]["lanes"] * g[u][v]["maxspeed"] * 10 / car_size) for v in list(g.nodes) if g.has_edge(u, v)) > 0) for u in IP_node_list]
+        # The weights associated to a node being a destination calculated as uniform weights
+        weight_destinations = [int(sum(math.ceil(g[u][v]["lanes"] * g[u][v]["maxspeed"] * 10 / car_size) for u in list(g.nodes) if g.has_edge(u, v)) > 0) for v in IP_node_list]
     # Choose randomly 'nb_pairs' of source-destination pairs according to 'weight_sources' and 'weight_destinations'
     pairs, num_draw = [], 0
     while len(pairs) < nb_pairs and num_draw < nb_max_draws:
@@ -437,11 +445,13 @@ def pre_process_networkx(graph_path_file,
                          interset_points_file_path,
                          nb_pairs,
                          nb_max_draws_pairs = 10,
+                         pairs_generation_type = "capacity",
                          car_size = 1,
                          save_dir = None,
                          generate_figure = None,
                          matrix_representation = True,
-                         print_ = True):
+                         print_ = True,
+                         saved_path_file_pre_processed = None):
     """
     Construct the instance
 
@@ -488,9 +498,14 @@ def pre_process_networkx(graph_path_file,
     list_id_pairs = generate_origin_destination_pairs (nx_graph,
                                                        nb_pairs, 
                                                        list_interest_points, 
-                                                       car_size,
+                                                       pairs_generation_type = pairs_generation_type,
+                                                       car_size = car_size,
                                                        nb_max_draws = nb_max_draws_pairs)
-    
+    """dict_instances = np.load("data/real_data/pre_processed/LieuSaint/real_instance_lieusaint.npy", 
+                             allow_pickle = True).flatten()[0]
+    list_nodes_graph = dict_instances["nodes"]
+    list_id_pairs = [(list_nodes_graph[s], list_nodes_graph[d]) for s, d in dict_instances["pairs"]]"""
+
     # Delete all the nodes which can't be reached from the source and from which the destination can't be reached
     interest_point_ids = {node["id"] for node in list_interest_points}
     delete_non_reach_pairs_nodes(nx_graph, list_id_pairs, interest_point_ids)
@@ -517,8 +532,14 @@ def pre_process_networkx(graph_path_file,
     print("Number of nodes ", len(nx_graph.nodes))
     print("Number of edges ", len(nx_graph.edges))
     print("--------------------------------------------------------------------------------------")
-
-
+    
+    print("------------------------- Save pre-processed file -------------------")
+    # Open the graph path file
+    if saved_path_file_pre_processed is not None:
+        with open(saved_path_file_pre_processed, 'wb') as file:
+            pickle.dump(nx_graph, file)
+    print("-------------------------------------------------------------------------------------------------------")
+    
     print("----------------------------- Constructin the adjacency matrix ----------------------------------------")
     graph, capacities, transport_times, node_list, edge_list = return_network_data(nx_graph,
                                                                                    car_size, 
@@ -527,7 +548,6 @@ def pre_process_networkx(graph_path_file,
     print("-------------------------------------------------------------------------------------------------------")
 
     # Retrieve the pairs after node deletion
-    node_list = list(nx_graph.nodes)
     pairs = [(node_list.index(id_source), 
               node_list.index(id_destination)) for id_source, id_destination in list_id_pairs]
     
@@ -581,22 +601,26 @@ def construct_real_instances (graph_nx_path_file,
                               nb_instances,
                               nb_pairs,
                               suffix_fname,
+                              pairs_generation_type = "capacity",
                               car_size = 1,
                               min_fl = 1,
                               nb_max_draws_pairs = 10,
                               nb_it_print = None,
                               save_dir = None,
                               matrix_representation = True,
-                              generate_figure = None):
+                              generate_figure = None,
+                              saved_path_file_pre_processed = None):
     # The file names associated to the the folder 'MI' containing the structural data (the arc, the capacities and the transport times)
     return_dict, _, _ = pre_process_networkx(graph_nx_path_file, 
                                              interest_points_file_path,
                                              nb_pairs,
                                              nb_max_draws_pairs = nb_max_draws_pairs,
+                                             pairs_generation_type = pairs_generation_type,
                                              car_size = car_size,
                                              save_dir = save_dir,
                                              matrix_representation = matrix_representation,
-                                             generate_figure = generate_figure)
+                                             generate_figure = generate_figure,
+                                             saved_path_file_pre_processed = saved_path_file_pre_processed)
     
     graph = return_dict["graph"]
     capacities = return_dict["capacities"]
@@ -634,8 +658,6 @@ def construct_real_instances (graph_nx_path_file,
                                                                      raw_transport_times, 
                                                                      all_pairs, 
                                                                      return_multi_flow_dict)
-        print(return_dict_ajusted_data["transport_times"])
-        sys.exit()
         
         # Construct mfd_instance
         mfd_instance = MultiFlowDesagInstance(deepcopy(return_dict_ajusted_data["corr_graph"]), 
@@ -667,7 +689,7 @@ def construct_real_instances (graph_nx_path_file,
 
 def main():
     test_names = {"versailles", "lieusaint"}
-    test_name = "lieusaint"
+    test_name = "versailles"
     if test_name == "versailles":
         construct_real_instances (graph_nx_path_file = "data/real_data/original_graphs/versailles.gpickle", 
                                 interest_points_file_path = "data/real_data/pre_processed/Versailles/points_versailles.txt",
@@ -675,15 +697,17 @@ def main():
                                 dir_save_name_multiflow = "data/real_data/pre_processed/Versailles/multi_flow_instances/",
                                 dir_save_name_mfd = "data/real_data/pre_processed/Versailles/",
                                 nb_instances = 100,
-                                nb_pairs = 15,
+                                nb_pairs = 20,
                                 suffix_fname = "versailles",
+                                pairs_generation_type = "random",
                                 car_size = 5,
                                 min_fl = 1,
                                 nb_max_draws_pairs = 300,
                                 nb_it_print = None,
                                 save_dir = "data/real_data/pre_processed/Versailles/",
                                 matrix_representation = False,
-                                generate_figure = [True, True])
+                                generate_figure = [True, True],
+                                saved_path_file_pre_processed = "data/real_data/pre_processed/Versailles/versailles_preprocessed.gpickle")
     
     elif test_name == "lieusaint":
         construct_real_instances (graph_nx_path_file = "data/real_data/original_graphs/lieusaint.gpickle", 
@@ -694,13 +718,15 @@ def main():
                                 nb_instances = 100,
                                 nb_pairs = 15,
                                 suffix_fname = "lieusaint",
+                                pairs_generation_type = "capacity",
                                 car_size = 5,
                                 min_fl = 1,
                                 nb_max_draws_pairs = 300,
                                 nb_it_print = None,
                                 save_dir = "data/real_data/pre_processed/LieuSaint/",
                                 matrix_representation = False,
-                                generate_figure = [True, True])
+                                generate_figure = [True, True],
+                                saved_path_file_pre_processed = "data/real_data/pre_processed/LieuSaint/lieusaint_preprocessed.gpickle")
 
 if __name__ == "__main__":
     main()

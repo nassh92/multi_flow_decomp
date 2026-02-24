@@ -6,6 +6,7 @@ from copy import deepcopy
 import os
 sys.path.append(os.getcwd())
 from utils.graph_utils import make_path_simple, successors, has_arc
+from utils.shortest_path_solvers import DijkstraShortestPathsSolver 
 from msmd.stateless_RL_agents import (POLICY_BASED_TYPE_AGENTS,
                                             VALUE_BASED_TYPE_AGENTS,
                                             MIXED_TYPE_AGENTS,
@@ -15,6 +16,7 @@ from msmd.successor_selectors import(LargestFlowSuccessorSelector,
                                            TransFuncSuccessorSelector,
                                            RLSuccessorSelector,
                                            RLSuccessorSelectorExpoDecay,
+                                           RLSuccessorSelectorPenalizeCircuits,
                                            SUCCESSORS_SELECTOR_TYPES)
 
 
@@ -28,7 +30,9 @@ PATH_SELECTOR_TYPES = {None,
 
 RLDATA_INITIALIZATION_TYPES = {"uniform", "flow_based"}
 
-
+REWARD_DISCOUNT_TYPES = {"no_discount",
+                         "discount_by_length",
+                         "discount_by_cost"}
 
 ##########
 #####################################  PATH SELECTION - Path Selectors  #####################################
@@ -67,10 +71,10 @@ class RandomPathSelector(PathSelector):
         node = self.successor_selector.chose_successor(source, graph_mat)
         if node is None: return None
         path = [source, node]
-        cur_path = None if not self.exclude_chosen_nodes else path
+        cur_path = path if self.exclude_chosen_nodes else None 
         path_length = 0
         while node != destination and path_length < self.max_path_length:
-            node = self.successor_selector.chose_successor(node, graph_mat, cur_path = cur_path)
+            node = self.successor_selector.chose_successor(self, node, graph_mat, cur_path = cur_path)
             if node is not None:
                 path.append(node)
                 path_length += 1
@@ -136,7 +140,7 @@ class PathSelectorTransFunc(PathSelector):
         arc = self.successor_selector.chose_successor(self, source, None, graph_mat)
         if arc is None: return None
         path = [arc[0], arc[1]]
-        cur_path = None if not self.exclude_chosen_nodes else path
+        cur_path = path if self.exclude_chosen_nodes else None
         path_length = 0
         while arc[1] != destination and path_length < self.max_path_length:
             arc = self.successor_selector.chose_successor(self, source, arc, graph_mat, cur_path = cur_path)
@@ -295,12 +299,62 @@ class RLArcPathSelecAgentsHandler(RLPathSelecAgentsHandler):
 
 
 #####################################  RL Path Selector  #####################################
+class CircuitPenalizer:
+
+    def __init__ (self, rl_path_selector, circuit_penalty_param):
+        self.rl_path_selector = rl_path_selector
+        self.circuit_penalty_param = circuit_penalty_param
+
+    def penalize_circuit(self, pair, candidate_path):
+        # Test if the length of a path is null
+        if len(candidate_path) == 0:
+            print("Zero length path.")
+            sys.exit()
+        # !!!!!!! Faut que je revois tout ça !!!!!
+        # Get the last element
+        idx_last_node = candidate_path.index(candidate_path[-1])
+        if idx_last_node < len(candidate_path) - 1:
+            # Get the circuit
+            circuit = candidate_path[idx_last_node:]
+           
+            # Get the first RL agent
+            if idx_last_node == 0:
+                rl_agent = self.rl_path_selector.source_agents[pair]
+            else:
+                cur_arc = (candidate_path[idx_last_node-1], candidate_path[idx_last_node])
+                agent_key = (cur_arc[1],) if self.rl_path_selector.path_selector_type == "rl_node_based" else cur_arc if self.rl_path_selector.path_selector_type == "rl_arc_based" else None
+                rl_agent = self.rl_path_selector.agents[pair+agent_key]
+           
+            # Update the first (source) agent
+            id_action = rl_agent.actions_to_inds[circuit[1]]
+            # Changing from normal mode to penalty mode, update the policy and back to normal mode
+            rl_agent.learning_rate_r0 = self.circuit_penalty_param
+            rl_agent.update_policy(id_action, 0)
+            rl_agent.learning_rate_r0 = None
+            # Update the agents associated to the arcs of the paths (resposible for chosing the next arc)
+            for ind_node in range(1, len(circuit)-1):
+                cur_arc = (circuit[ind_node-1], circuit[ind_node])
+                agent_key = (cur_arc[1],) if self.path_selector_type == "rl_node_based" else cur_arc if self.rl_path_selector.path_selector_type == "rl_arc_based" else None
+                rl_agent = self.agents[pair+agent_key]
+                id_action = rl_agent.actions_to_inds[circuit[ind_node+1]]
+                # Changing from normal mode to penalty mode, update the policy and back to normal mode
+                rl_agent.learning_rate_r0 = self.circuit_penalty_param
+                rl_agent.update_policy(id_action, 0)
+                rl_agent.learning_rate_r0 = None
+            return True
+        else:
+            return False
+
+
 class RLPathSelector(PathSelector):
     
     def __init__(self, 
-                 mfd_instance, dict_parameters, path_selector_type, max_path_length, 
-                 ac_est_normalised = False, exclude_chosen_nodes = False, 
-                 successor_selector_type = "standard", rl_data_init_type = "flow_based", 
+                 mfd_instance, dict_parameters, 
+                 path_selector_type, max_path_length, 
+                 ac_est_normalised = False, 
+                 exclude_chosen_nodes = False, 
+                 successor_selector_type = "standard", 
+                 rl_data_init_type = "flow_based",
                  opt_params = None):
         # Exit if 'successor_selector' is not recognized 
         if successor_selector_type not in SUCCESSORS_SELECTOR_TYPES or rl_data_init_type not in RLDATA_INITIALIZATION_TYPES:
@@ -316,8 +370,22 @@ class RLPathSelector(PathSelector):
         # Intializing the parameters of the RL algorithm
         self.dict_parameters = dict_parameters
 
+        # Store reward type
+        self.reward_discount_type = opt_params.get("reward_discount_type", "no_discount") if opt_params is not None else "no_discount"
+
+        # True iif we want to penalize the circuits
+        penalize_circuits = opt_params.get("penalize_circuits", False) if opt_params is not None else False
+        if penalize_circuits:
+            circuit_penalty_param = opt_params.get("circuit_penalty_param", None)
+            if circuit_penalty_param is None:
+                print("Circuit penalty prameter must be provided.")
+                sys.exit()
+            self.circuit_penalizer = CircuitPenalizer(self, circuit_penalty_param)
+        else:
+            self.circuit_penalizer = None
+        
         # Initialise selected paths
-        self.selected_paths = []
+        self.selected_paths_data = []
 
         # Initialization of the agents handler (help create the agents)
         self.agents, self.source_agents = {}, {}
@@ -342,16 +410,48 @@ class RLPathSelector(PathSelector):
                                                                 self.mfd_instance.adj_mat,
                                                                 opt_params["penalty_init_val"],
                                                                 opt_params["decay_param"])
+        
+        else:
+            print("RL successor type not recognized.")
+            sys.exit()
 
 
     def reset_selected_paths(self):
-        self.selected_paths = []
+        self.selected_paths_data = []
     
 
-    def add_path(self, chosen_path):
-        self.selected_paths.append(chosen_path)
+    def _add_path_data(self, chosen_path):
+        if self.reward_discount_type == "no_discount":
+            self.selected_paths_data.append((chosen_path,))
+        
+        elif self.reward_discount_type == "discount_by_length":
+            length_path = len(chosen_path)
+            graph = self.mfd_instance.adj_mat
+            dijkstra_solver = DijkstraShortestPathsSolver(source = chosen_path[0],
+                                                          graph = graph,
+                                                          weights = graph, 
+                                                          mode = "min_distance",
+                                                          matrix_representation = self.mfd_instance.matrix_representation)
+            dijkstra_solver.run_dijkstra()
+            minimal_length = dijkstra_solver.path_estimates[chosen_path[-1]]
+            self.selected_paths_data.append((chosen_path, minimal_length/length_path))
+        
+        elif self.reward_discount_type == "discount_by_cost":
+            graph, transport_times = self.mfd_instance.adj_mat, self.mfd_instance.transport_times
+            cost_path = sum(transport_times[chosen_path[i]][chosen_path[i+1]] for i in range(len(chosen_path)-1))
+            dijkstra_solver = DijkstraShortestPathsSolver(source = chosen_path[0],
+                                                          graph = graph,
+                                                          weights = transport_times, 
+                                                          mode = "min_distance",
+                                                          matrix_representation = self.mfd_instance.matrix_representation)
+            dijkstra_solver.run_dijkstra()
+            minimal_cost = dijkstra_solver.path_estimates[chosen_path[-1]]
+            self.selected_paths_data.append((chosen_path, minimal_cost/cost_path))
+        elif self.reward_discount_type not in REWARD_DISCOUNT_TYPES:
+            print("Reward type no recognized.")
+            sys.exit()
     
-
+    
     def return_path(self, subg_s_d, source, destination):
         """
         Methode abstraite implementant le choix d'une action suivant le type d'agent
@@ -359,12 +459,17 @@ class RLPathSelector(PathSelector):
         node = self.successor_selector.chose_successor(self, (source, destination), None , subg_s_d)
         if node is None: return None
         path = [source, node]
-        cur_path = None if not self.exclude_chosen_nodes else path
+        cur_path = path if self.exclude_chosen_nodes else None
         path_length = 0
         while node != destination and path_length < self.max_path_length:
-            node = self.successor_selector.chose_successor(self, (source, destination), (path[-2], path[-1]), subg_s_d, cur_path = cur_path)
+            node = self.successor_selector.chose_successor(self, 
+                                                           (source, destination), 
+                                                           (path[-2], path[-1]), 
+                                                           subg_s_d, cur_path = cur_path)
             if node is not None:
                 path.append(node)
+                if self.circuit_penalizer is not None and self.circuit_penalizer.penalize_circuit((source, destination), path):
+                    return None
                 path_length += 1
             else:
                 #print("No successors.")
@@ -374,26 +479,40 @@ class RLPathSelector(PathSelector):
             print("Max path length is attained ", path_length)
             return None
         
-        chosen_path = make_path_simple (path)
-        self.add_path(chosen_path)
+        chosen_path = make_path_simple (path) if self.circuit_penalizer is None else path
+        self._add_path_data(chosen_path)
         return chosen_path  
 
 
-    def update_agents_policies(self, reward):
+    def _return_discounted_reward(self, reward, discount_val):
+        return discount_val * reward
+
+
+    def _update_agents_paths(self, path, pair, first_agent, reward):
+        # Update the first (source) agent
+        id_action = first_agent.actions_to_inds[path[1]]
+        first_agent.update_policy(id_action, reward)
+        # Update the agents associated to the arcs of the paths (resposible for chosing the next arc)
+        for ind_node in range(1, len(path)-1):
+            cur_arc = (path[ind_node-1], path[ind_node])
+            agent_key = (cur_arc[1],) if self.path_selector_type == "rl_node_based" else cur_arc if self.path_selector_type == "rl_arc_based" else None
+            rl_agent = self.agents[pair+agent_key]
+            id_action = rl_agent.actions_to_inds[path[ind_node+1]]
+            rl_agent.update_policy(id_action, reward)
+
+
+    def update_agents_policies(self, undiscounted_reward):
         """
         Mise à jour de la politique
         """
-        for path in self.selected_paths:
+        for path_data in self.selected_paths_data:
+            # Fetch path data and the source and destination of the path and calculate the discounted reward
+            path, discount_val = path_data[0], path_data[1] if len(path_data) == 2 else 1
             source, destination = path[0], path[-1]
-            rl_agent = self.source_agents[(source, destination)] 
-            id_action = rl_agent.actions_to_inds[path[1]]
-            rl_agent.update_policy(id_action, reward)
+            discounted_reward = self._return_discounted_reward(undiscounted_reward, discount_val)
+            
+            # Update the source agent
+            first_agent = self.source_agents[(source, destination)]
+            self._update_agents_paths(path, (source, destination), first_agent, discounted_reward) 
 
-            for ind_node in range(1, len(path)-1):
-                cur_arc = (path[ind_node-1], path[ind_node])
-                agent_key = (cur_arc[1],) if self.path_selector_type == "rl_node_based" else cur_arc if self.path_selector_type == "rl_arc_based" else None
-                rl_agent = self.agents[(source, destination)+agent_key]
-                id_action = rl_agent.actions_to_inds[path[ind_node+1]]
-                rl_agent.update_policy(id_action, reward)
 
-    

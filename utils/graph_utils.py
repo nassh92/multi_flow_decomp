@@ -5,11 +5,19 @@ import sys
 ################################################ GRAPH API : adjancency list/matrix  ###################################
 ########################################################################################################################
 
-def create_isolated_nodes_graph(size, matrix_representation = True):
-     if matrix_representation:
+GRAPH_REPRESENTATION_TYPES = {"adjacency_matrix", "adjacency_list"} 
+
+
+def create_isolated_nodes_graph(size, graph_representation = True):
+     if graph_representation == "adjacency_matrix":
           return [[0 for v in range(size)] for u in range(size)]
-     else:
+     
+     elif graph_representation == "adjacency_list":
           return {u:[] for u in range(size)}
+     
+     elif graph_representation not in GRAPH_REPRESENTATION_TYPES:
+          print("Graph representation type not recognized.")
+          sys.exit()
 
 
 def is_adjacency_matrix(graph):
@@ -18,7 +26,7 @@ def is_adjacency_matrix(graph):
      elif isinstance(graph, dict):
           return False
      else:
-          print('Adjacency not recognize.')
+          print('Graph representation type not recognized.')
           sys.exit()
 
 

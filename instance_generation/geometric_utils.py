@@ -4,12 +4,23 @@ import itertools
 
 import sys
 
+import os
+
 from copy import deepcopy
 
 import numpy as np
 
+sys.path.append(os.getcwd())
+
+from utils.graph_utils import get_neighbours
+
 
 DISTANCE_TYPES = {"euclidean"}
+
+
+NEIGHBOURS_SORTING_CRITERIAS = {"distance",
+                                "distance_n_nb_neighbours", 
+                                "nb_neighbours_n_distance"}
 
 
 def generate_nodes(grid_size, nb_nodes):
@@ -33,7 +44,7 @@ def generate_nodes(grid_size, nb_nodes):
     return nodes
 
 
-def get_near_nodes(P, points, r, distance_type = "euclidean"):
+def get_near_nodes(P, points, r, distance_type = "euclidean", sort_distances = False):
     """
     Get the points at distance r from point P. 
     P : the size of the grid 
@@ -43,10 +54,53 @@ def get_near_nodes(P, points, r, distance_type = "euclidean"):
     (in the adjacency matrix)
     """
     near_points = []
+    if sort_distances: distances_to_P = []
     for i in range(len(points)):
-        if points[i] != P and distance(P, points[i], distance_type = distance_type) <= r:
+        distance_to_point = distance(P, points[i], distance_type = distance_type) 
+        if points[i] != P and distance_to_point <= r:
             near_points.append(points[i])
+            if sort_distances: distances_to_P.append(distance_to_point)
+    # Sort the distances if 'sort_distances' is True 
+    if sort_distances:
+        sorted_points = sorted(list(zip(near_points, distances_to_P)),
+                               key = lambda x : x[1])
+        near_points = [e[0] for e in sorted_points]
     return near_points
+
+
+def sort_candidate_neighbours(P, 
+                              near_points, 
+                              distance_type = "euclidean", 
+                              sorting_criteria = "distance",
+                              opt_params = None):
+    if sorting_criteria == "distance":
+        sorted_points = sorted(near_points, 
+                               key = lambda point : distance(P, 
+                                                             point, 
+                                                             distance_type = distance_type))
+    
+    elif sorting_criteria == "distance_n_nb_neighbours":
+        adj_mat, nodes = opt_params["adj_mat"], opt_params["nodes"]
+        sorted_points = sorted(near_points, 
+                               key = lambda point : (distance(P, 
+                                                             point, 
+                                                             distance_type = distance_type),
+                                                    len(get_neighbours(adj_mat, nodes[point]))
+                                                    ))
+        
+    elif sorting_criteria == "nb_neighbours_n_distance":
+        adj_mat, nodes = opt_params["adj_mat"], opt_params["nodes"]
+        sorted_points = sorted(near_points, 
+                               key = lambda point : (len(get_neighbours(adj_mat, nodes[point])),
+                                                     distance(P, 
+                                                             point, 
+                                                             distance_type = distance_type),
+                                                    ))
+    
+    else:
+        print("Node sorting criteria unrocognized.")
+        sys.exit()
+    return sorted_points
 
 
 def distance(P, Q, distance_type = "euclidean"):

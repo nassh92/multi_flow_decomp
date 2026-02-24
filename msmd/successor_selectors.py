@@ -13,7 +13,8 @@ from msmd.stateless_RL_agents import (POLICY_BASED_TYPE_AGENTS,
 
 
 # Constants
-SUCCESSORS_SELECTOR_TYPES = {"standard", "exponential_decay"}
+SUCCESSORS_SELECTOR_TYPES = {"standard", 
+                             "exponential_decay"}
 
 
 ##########
@@ -98,28 +99,28 @@ class TransFuncSuccessorSelector(SuccessorSelector):
 
 class RLSuccessorSelector(SuccessorSelector):
 
-    def replace_agent_policy(self, rl_agent, policy, action_subspace):
+    def _replace_agent_policy(self, rl_agent, policy, action_subspace):
         rl_agent.actions = action_subspace
         rl_agent.policy = [policy[rl_agent.actions_to_inds[action]] for action in action_subspace]
         sum_proba_actionsubspace = sum(rl_agent.policy)
         rl_agent.policy = np.array([p/sum_proba_actionsubspace for p in rl_agent.policy])
 
 
-    def replace_agent_estimates(self, rl_agent, actions_estimates, action_subspace):
+    def _replace_agent_estimates(self, rl_agent, actions_estimates, action_subspace):
         rl_agent.actions = action_subspace
         rl_agent.actions_estimates = [actions_estimates[rl_agent.actions_to_inds[action]] for action in action_subspace]
 
 
     def chose_action_actionsubspace(self, rl_agent, action_subspace, ag_type):
         if ag_type == "Hier_cont_pursuit":
-            print("Hierachical pusuite algorithm is not supported.")
+            print("Hierachical pusuit algorithm is not supported.")
             sys.exit()
 
         if ag_type in POLICY_BASED_TYPE_AGENTS or ag_type in MIXED_TYPE_AGENTS:
             # Replace total action space and policy with subaction space given in entry and its corresponing subpolicy
             actions, policy = rl_agent.actions, rl_agent.policy
             # Replace agent's policy
-            self.replace_agent_policy(rl_agent, policy, action_subspace)
+            self._replace_agent_policy(rl_agent, policy, action_subspace)
             # Chose action using subpolicy
             ind_action_acsubspace = rl_agent.chose_action()
             # Replace original action space and policy
@@ -129,7 +130,7 @@ class RLSuccessorSelector(SuccessorSelector):
             # Replace total action space and estimates with subaction space given in entry and their corresponing estimates
             actions, actions_estimates = rl_agent.actions, rl_agent.actions_estimates
             # Replace agent's estimates
-            self.replace_agent_estimates(rl_agent, actions_estimates, action_subspace)
+            self._replace_agent_estimates(rl_agent, actions_estimates, action_subspace)
             # Chose action using actions estimates of the actions in the subaction space
             ind_action_acsubspace = rl_agent.chose_action()
             # Replace original action space and policy
@@ -144,7 +145,8 @@ class RLSuccessorSelector(SuccessorSelector):
 
     def chose_successor(self, path_selector, pair, elem, graph_mat, cur_path = None):
         """
-        Return successor arc using the transition function 
+        Return :
+         - Successor node using the agent associated to the current arc 
         """
         if elem is None:
             trans_func, source, destination = path_selector.mfd_instance.transition_from_sources, pair[0], pair[1]

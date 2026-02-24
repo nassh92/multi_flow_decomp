@@ -163,7 +163,7 @@ def read_multif_flow_instance (dir_name_graph_instance, dir_name_multi_flow_inst
         print(" acces ", adj_mat[0])
         print("Pairs do not correspond or problem in length of 'multi_flow'.")
         sys.exit()
-    
+    print(all_flow_values)
     flow_values, pairs, multi_flow = [], [], []
     for i in range(len(all_flow_values)):
         if all_flow_values[i] != 0:

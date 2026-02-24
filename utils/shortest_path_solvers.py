@@ -3,9 +3,9 @@ import random
 from copy import deepcopy
 import os
 import sys
-
+import time
 sys.path.append(os.getcwd())
-from utils.graph_utils import make_path_simple, create_isolated_nodes_graph, successors, predecessors, add_arc, has_arc
+from utils.graph_utils import make_path_simple, create_isolated_nodes_graph, successors, predecessors, add_arc, has_arc, get_nodes
 
 
 MODES = ["min_distance", "max_capacity"]
@@ -48,11 +48,13 @@ class DijkstraShortestPathsSolver:
         self.processed = set()
         self.not_processed = set(range(len(self.graph)))
         # Initalize all paths estimates with infinity/0 and predecessors with None
-        self.path_estimates = []
-        self.predecessors = []
-        for _ in range(len(self.graph)):
-            self.path_estimates.append(float('inf') if self.mode == "min_distance" else 0 if self.mode == "max_capacity" else None) 
-            self.predecessors.append(None)
+        self.path_estimates = dict()
+        self.predecessors = dict()
+        for node in get_nodes(self.graph):
+            # Initialize the estimate of node 'node' (depending on the value of self.mode)
+            self.path_estimates[node] = float('inf') if self.mode == "min_distance" else 0 if self.mode == "max_capacity" else None
+            # Initalize the predecessor of 'node' to None 
+            self.predecessors[node] = None
         
         self.path_estimates[self.source] = 0 if self.mode == "min_distance" else float('inf') if self.mode == "max_capacity" else None
 
@@ -142,6 +144,7 @@ class DijkstraShortestPathsSolver:
                 # Update the estimates of the edges (u, v) adjacent to u
                 if not self._filter_arc(u, v):
                     new_estimate = self._process_new_estimate(u, v)
+                    
                     # Relax the edge (u, v)
                     if self._is_better_than(new_estimate, self.path_estimates[v]):
                         self.path_estimates[v] = new_estimate

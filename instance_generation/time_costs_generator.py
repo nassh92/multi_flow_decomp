@@ -2,6 +2,8 @@ import sys
 
 import os
 
+import math
+
 sys.path.append(os.getcwd())
 
 from instance_generation.geometric_utils import distance
@@ -14,6 +16,9 @@ def generate_raw_times (nb_nodes, nodes, arcs, distance_type = "euclidean"):
     for seg in arcs:
         node1, node2 = nodes[seg[0]], nodes[seg[1]]
         cost = distance(seg[0], seg[1], distance_type = distance_type)
+        if math.isinf(cost) or math.isnan(cost):
+            print("Distance is infinity ", seg[0], seg[1])
+            return False
         raw_transport_times[node1][node2] = cost
         raw_transport_times[node2][node1] = cost
     return raw_transport_times

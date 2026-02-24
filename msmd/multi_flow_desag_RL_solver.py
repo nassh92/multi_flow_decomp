@@ -50,6 +50,8 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
         # True iif we want to save the evolution of the performance metrics
         self.store_perfs_evol_path = store_perfs_evol_path
         self.performance_metrics_evol = None if store_perfs_evol_path is None else []
+        # Save optional parameters for later (possible use)
+        self.opt_params = opt_params
         # Calling the parent constructor
         super().__init__(
                         mfd_instance,
@@ -122,7 +124,7 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
     
     def _has_iterated_too_much (self):
         return self.num_it >= self.max_nb_it_episode or self.nb_tries_find_path >= self.max_nb_tries_find_path
-    
+        
     
     def process_perfs(self, multi_flow, coeff1, coeff2, coeff3):
         fl_val_res, fl_res, transf_res = 0, 0, 0
@@ -144,11 +146,15 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
         
         total_weight_error = coeff1*fl_val_res + coeff2*fl_res + coeff3*transf_res
 
+        reward = 1 - total_weight_error
+
+        discounted_reward = self._reward_discount(reward)
+
         if total_weight_error > 1.0000001 or total_weight_error < 0:
             print("Total weigted error is out of range.")
             sys.exit()
         
-        return 1 - total_weight_error, fl_val_res, fl_res, transf_res
+        return discounted_reward, fl_val_res, fl_res, transf_res
     
 
     def store_performance_metrics(self, ls_perfs):

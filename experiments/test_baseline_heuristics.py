@@ -28,12 +28,14 @@ def baseline_heurs_simulated_instances():
     # Directories
     #dir_name_graph_instance = "instance_generation/instances/capacity/instances_nbnodes=95_pairs=20/"
     #dir_name_multi_flow_instance = "multi_flow_generation/transition_function_instances/"
-    path_results = "results/temp/results_baseline_heuristics_95.pickle"
+    #path_results = "results/temp/results_baseline_heuristics_95.pickle"
+    path_results = "results/temp/results_baseline_heuristics_smallworld.pickle"
     
     print("Instances treatment ")
     # Construction of the instances
-    constructed_instances_path = "data/simulated_data/complete_instances/node_pairs/data_instances_random_95_20.npy"
-    dict_instances = np.load(constructed_instances_path, allow_pickle = True).flatten()[0]
+    constructed_instances_path = "data/simulated_data/complete_instances/node_pairs/data_instances_small_world_200_20.npy"
+    dict_instances = np.load(constructed_instances_path, 
+                             allow_pickle = True).flatten()[0]
     """dict_instances = construct_instances (
                         dir_name_graph_instance = dir_name_graph_instance, 
                         dir_name_multi_flow_instance = dir_name_multi_flow_instance,
@@ -44,7 +46,7 @@ def baseline_heurs_simulated_instances():
     # Common parameters values
     max_path_length = 10000
     nb_max_tries = 50000
-    max_nb_tries_find_path = 10
+    max_nb_tries_find_path = 20
     maximal_flow_amount = 1
 
     # Fixed parameters (for now)
@@ -132,7 +134,7 @@ def baseline_heurs_simulated_instances():
                 print("Error.")
                 sys.exit()
         
-
+            print("Test ", test)
             unattributed_flow = [[0 for v in range(len(mfd_instance.aggregated_flow))] 
                                                         for u in range(len(mfd_instance.aggregated_flow))]
             # Process the metrics and store them in 'dict_result'
@@ -351,10 +353,10 @@ def main():
     elif test_name == "real_instances":
         # Directories
         #constructed_instances_path = "multi_flow_generation_wei/data/data_instances.npy"
-        constructed_instances_path = "data/real_data/pre_processed/LieuSaint/data_instances.npy"
+        constructed_instances_path = "data/real_data/pre_processed/Versailles/data_instances.npy"
         #path_results = "results/simulated/MFDS_vs_RL/results_test/"+"results_rl_heuristics.npy"
         #path_results = "results/"+"results_versailles_heuristics.pickle"
-        path_results = "results/"+"results_lieusaint2_heuristics.pickle"
+        path_results = "results/"+"results_versailles_heuristics.pickle"
         baseline_heurs_real_instances(constructed_instances_path,
                                       path_results,
                                       matrix_representation = False)
