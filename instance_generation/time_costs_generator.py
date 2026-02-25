@@ -8,12 +8,17 @@ sys.path.append(os.getcwd())
 
 from instance_generation.geometric_utils import distance
 
+from utils.graph_utils import init_graph_arc_attribute_vals, get_nb_nodes
 
-def generate_raw_times (nb_nodes, nodes, arcs, distance_type = "euclidean"):
+
+def generate_raw_times (graph, nodes, arcs_segs, distance_type = "euclidean"):
     # Initializaitons
-    raw_transport_times = [[0 if i==j else float("inf") for j in range(nb_nodes)] for i in range(nb_nodes)]
+    init_val = lambda u, v: 0 if u==v else float("inf")
+    raw_transport_times = init_graph_arc_attribute_vals(graph,
+                                                        init_val = init_val)
+    
     # For each segment in 'arc', the transport tiime is represented as the distance separating both endpoints of the segment
-    for seg in arcs:
+    for seg in arcs_segs:
         node1, node2 = nodes[seg[0]], nodes[seg[1]]
         cost = distance(seg[0], seg[1], distance_type = distance_type)
         if math.isinf(cost) or math.isnan(cost):
@@ -24,9 +29,11 @@ def generate_raw_times (nb_nodes, nodes, arcs, distance_type = "euclidean"):
     return raw_transport_times
 
 
-def generate_transport_time(raw_transport_times, spanning_tree_pred, fraction):
+def generate_transport_time(graph, raw_transport_times, spanning_tree_pred, fraction):
     # Initializaitons
-    transport_times = [[0 if i==j else float("inf") for j in range(len(raw_transport_times))] for i in range(len(raw_transport_times))]
+    init_val = lambda u, v: 0 if u==v else float("inf")
+    transport_times = init_graph_arc_attribute_vals(graph,
+                                                    init_val = init_val)
     # Main Loop. The 'transport_time' is a fraction of the raw transport time if it is in the spanning_tree
     # else it does not change
     for i in range(len(transport_times)):

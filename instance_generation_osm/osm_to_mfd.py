@@ -68,11 +68,11 @@ def return_transport_times_data(nx_graph, graph, node_list, edge_list):
     return adj_mat, capacity_mat, transport_times_mat, node_list, edge_list"""
 
 
-def return_network_data(nx_graph, car_size = 1, print_ = False, matrix_representation = True):
+def return_network_data(nx_graph, car_size = 1, print_ = False, graph_representation = "adjacency_matrix"):
     node_list = list(nx_graph.nodes)
     edge_list = [(node_list.index(u), node_list.index(v)) for u, v in nx_graph.edges]
     # Adjacency matrice
-    if matrix_representation:
+    if graph_representation:
         graph = nx.to_numpy_array(nx_graph).tolist()
     else:
         graph = {node_list.index(node):[node_list.index(succ_node) for succ_node in successors_dict.keys()] 
@@ -449,7 +449,7 @@ def pre_process_networkx(graph_path_file,
                          car_size = 1,
                          save_dir = None,
                          generate_figure = None,
-                         matrix_representation = True,
+                         graph_representation = "adjacency_matrix",
                          print_ = True,
                          saved_path_file_pre_processed = None):
     """
@@ -544,7 +544,7 @@ def pre_process_networkx(graph_path_file,
     graph, capacities, transport_times, node_list, edge_list = return_network_data(nx_graph,
                                                                                    car_size, 
                                                                                    print_ = print_,
-                                                                                   matrix_representation = matrix_representation)
+                                                                                   graph_representation = graph_representation)
     print("-------------------------------------------------------------------------------------------------------")
 
     # Retrieve the pairs after node deletion
@@ -607,7 +607,7 @@ def construct_real_instances (graph_nx_path_file,
                               nb_max_draws_pairs = 10,
                               nb_it_print = None,
                               save_dir = None,
-                              matrix_representation = True,
+                              graph_representation = "adjacency_matrix",
                               generate_figure = None,
                               saved_path_file_pre_processed = None):
     # The file names associated to the the folder 'MI' containing the structural data (the arc, the capacities and the transport times)
@@ -618,7 +618,7 @@ def construct_real_instances (graph_nx_path_file,
                                              pairs_generation_type = pairs_generation_type,
                                              car_size = car_size,
                                              save_dir = save_dir,
-                                             matrix_representation = matrix_representation,
+                                             graph_representation = graph_representation,
                                              generate_figure = generate_figure,
                                              saved_path_file_pre_processed = saved_path_file_pre_processed)
     
@@ -705,7 +705,7 @@ def main():
                                 nb_max_draws_pairs = 300,
                                 nb_it_print = None,
                                 save_dir = "data/real_data/pre_processed/Versailles/",
-                                matrix_representation = False,
+                                graph_representation = "adjacency_matrix",
                                 generate_figure = [True, True],
                                 saved_path_file_pre_processed = "data/real_data/pre_processed/Versailles/versailles_preprocessed.gpickle")
     
@@ -724,7 +724,7 @@ def main():
                                 nb_max_draws_pairs = 300,
                                 nb_it_print = None,
                                 save_dir = "data/real_data/pre_processed/LieuSaint/",
-                                matrix_representation = False,
+                                graph_representation = "adjacency_matrix",
                                 generate_figure = [True, True],
                                 saved_path_file_pre_processed = "data/real_data/pre_processed/LieuSaint/lieusaint_preprocessed.gpickle")
 

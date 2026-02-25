@@ -30,13 +30,21 @@ def is_adjacency_matrix(graph):
           sys.exit()
 
 
-def init_graph_arc_attribute_vals(graph, init_val = 0):
+def init_graph_arc_attribute_vals(graph, init_val = 0, dict_params = None):
+     if isinstance(init_val, int):
+          init_val = lambda u, v, dict_param: 0
+
      if isinstance(graph, list):
-          return [[init_val for v in range(len(graph))]
-                              for u in range(len(graph))]
+          return [[init_val(u, v, dict_params) for v in range(len(graph))] 
+                                        for u in range(len(graph))]
      elif isinstance(graph, dict):
-          return {u:{v:init_val for v in successors(graph, u)} for u in graph}
-     
+          return {u:{v:init_val(u, v, dict_params) for v in successors(graph, u)} for u in graph}
+
+
+def get_nb_nodes(graph):
+     if isinstance(graph, list) or isinstance(graph, dict):
+          return len(graph)
+
 
 def get_nodes(graph):
      if isinstance(graph, list):
@@ -159,10 +167,10 @@ def sum_in_attributes(arc_attribute_vals, graph, v, predecessors_list = None):
 
 def construct_tree_bsf (graph, 
                         source,
-                        matrix_representation = True):
+                        graph_representation = "adjacency_matrix"):
     # Initializations
     tree = create_isolated_nodes_graph(len(graph), 
-                                       matrix_representation = matrix_representation)
+                                       graph_representation = graph_representation)
     visited = [False] * len(graph)
     visited[source] = True
     queue = [source]
@@ -182,10 +190,10 @@ def construct_tree_bsf (graph,
     return tree
 
 
-def construct_anti_tree_bfs (graph, destination, matrix_representation = True):
+def construct_anti_tree_bfs (graph, destination, graph_representation = "adjacency_matrix"):
      # Initializations
     anti_tree = create_isolated_nodes_graph(len(graph), 
-                                            matrix_representation = matrix_representation)
+                                            graph_representation = graph_representation)
     visited = [False] * len(graph)
     visited[destination] = True
     queue = [destination]
@@ -218,14 +226,14 @@ def construct_anti_tree_bfs (graph, destination, matrix_representation = True):
 
 def graph_union (graph1, 
                  graph2,
-                 matrix_representation = True):
+                 graph_representation = "adjacency_matrix"):
     """
     Returns the union of two graphs represented by their graph matrices/lists over
     the same nodes.
     """
     arcs = set(get_arcs(graph1)) | set(get_arcs(graph2))
     adj_inters = create_isolated_nodes_graph(len(graph1), 
-                                             matrix_representation = matrix_representation)
+                                             graph_representation = graph_representation)
     for arc in arcs: add_arc(adj_inters, arc[0], arc[1])
     return adj_inters
 

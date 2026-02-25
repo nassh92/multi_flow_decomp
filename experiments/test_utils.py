@@ -31,7 +31,7 @@ def process_performances(flow_vals_desagg,
                          dict_results,
                          ind_instance,
                          test_infos,
-                         matrix_representation = True,
+                         graph_representation = "adjacency_matrix",
                          opt_params = None,
                          print_ = False):
     # Process the metrics and store them in 'dict_result'
@@ -51,7 +51,7 @@ def process_performances(flow_vals_desagg,
                                               graph, 
                                               ideal_transport_times, 
                                               pairs,
-                                              matrix_representation = matrix_representation)
+                                              graph_representation = graph_representation)
     """if prop_sp == None and exit_on_none:
         print(multi_flow_desag)
         sys.exit()"""

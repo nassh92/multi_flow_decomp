@@ -4,15 +4,20 @@ import random
 
 import sys
 
+import os
 
-def generate_capacities (adj_mat, base_capacity, factor, print_ = False):
+sys.path.append(os.getcwd())
+from utils.graph_utils import get_nodes, successors, get_arcs, init_graph_arc_attribute_vals
+
+
+def generate_capacities (graph, base_capacity, factor, print_ = False):
     # Process center
-    center = process_center(adj_mat, print_ = print_)
+    center = process_center(graph, print_ = print_)
     if print_: print("Center ", center)
 
     # Initializations
-    visited = [False]*len(adj_mat)
-    pred = [None]*len(adj_mat)
+    visited = [False]*len(graph)
+    pred = [None]*len(graph)
     
     # Queue initialization
     visited[center] = True
@@ -22,16 +27,26 @@ def generate_capacities (adj_mat, base_capacity, factor, print_ = False):
     while len(queue) > 0:
         # Dequeue a node
         node = queue.pop(0)
+        
+        # # Return the successor of 'node'
+        successors_node = successors(node)
+
         # Browse through the successors of 'node' and if unvisited, update their distance from the source and their visited status
-        for succ in range(len(adj_mat)):
-            if adj_mat[node][succ] == 1 and not visited[succ]:
+        for succ in successors_node:
+            if not visited[succ]:
                 visited[succ] = True
                 pred[succ] = node 
                 queue.append(succ)
 
     # Initialize the capacities
-    caps = [[base_capacity*factor if pred[j]==i or pred[i]==j else base_capacity if adj_mat[i][j]==1 else 0 for j in range(len(adj_mat))]\
-                                                                                                                for i in range(len(adj_mat))]
+    dict_attr_params = {"base_capacity":base_capacity,
+                        "factor":factor,
+                        "pred":pred}
+    init_val = lambda u, v, dict_attr_params: dict_attr_params["base_capacity"] * dict_attr_params["factor"] if dict_attr_params["pred"][v]==u or dict_attr_params["pred"][u]==v else dict_attr_params["base_capacity"]
+    caps = init_graph_arc_attribute_vals(graph,
+                                         init_val = init_val,
+                                         dict_attr_params = dict_attr_params)
+    
     if print_: print ("Predecessors ", pred)
 
     return caps, pred
@@ -40,7 +55,8 @@ def generate_capacities (adj_mat, base_capacity, factor, print_ = False):
 def process_center(adj_mat, print_ = False):
     min_exentricity, centers = float("inf"), []
     # Main loop
-    for node in range(len(adj_mat)):
+    nodes = get_nodes(adj_mat)
+    for node in nodes:
         exentricity = process_exentricity (adj_mat, node)
         # Update the min
         if exentricity < min_exentricity: 
@@ -56,10 +72,10 @@ def process_center(adj_mat, print_ = False):
         return centers[random.randint(0, len(centers)-1)]
 
 
-def process_exentricity (adj_mat, source):
+def process_exentricity (graph, source):
     # Initializations
-    visited = [False]*len(adj_mat)
-    distance = [0]*len(adj_mat)
+    visited = [False]*len(graph)
+    distance = [0]*len(graph)
 
     # Queue initialization
     visited[source] = True
@@ -69,9 +85,13 @@ def process_exentricity (adj_mat, source):
     while len(queue) > 0:
         # Dequeue a node
         node = queue.pop(0)
+
+        # Return the successor of 'node'
+        sucessors_node = successors(graph, node)
+
         # Browse through the successors of 'node' and if unvisited, update their distance from the source and their visited status
-        for succ in range(len(adj_mat)):
-            if adj_mat[node][succ] == 1 and not visited[succ]:
+        for succ in sucessors_node:
+            if not visited[succ]:
                 visited[succ] = True
                 distance[succ] = distance[node] + 1
                 queue.append(succ)

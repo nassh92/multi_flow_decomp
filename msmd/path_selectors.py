@@ -431,7 +431,7 @@ class RLPathSelector(PathSelector):
                                                           graph = graph,
                                                           weights = graph, 
                                                           mode = "min_distance",
-                                                          matrix_representation = self.mfd_instance.matrix_representation)
+                                                          graph_representation = self.mfd_instance.graph_representation)
             dijkstra_solver.run_dijkstra()
             minimal_length = dijkstra_solver.path_estimates[chosen_path[-1]]
             self.selected_paths_data.append((chosen_path, minimal_length/length_path))
@@ -443,7 +443,7 @@ class RLPathSelector(PathSelector):
                                                           graph = graph,
                                                           weights = transport_times, 
                                                           mode = "min_distance",
-                                                          matrix_representation = self.mfd_instance.matrix_representation)
+                                                          graph_representation = self.mfd_instance.graph_representation)
             dijkstra_solver.run_dijkstra()
             minimal_cost = dijkstra_solver.path_estimates[chosen_path[-1]]
             self.selected_paths_data.append((chosen_path, minimal_cost/cost_path))

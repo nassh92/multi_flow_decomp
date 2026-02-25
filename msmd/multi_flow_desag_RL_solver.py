@@ -35,7 +35,7 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
                  rl_data_init_type = "flow_based",
                  store_perfs_evol_path = None,
                  ignore_conflicts = False,
-                 matrix_representation = True,
+                 graph_representation = "adjacency_matrix",
                  opt_params = None):
         # The parameters for path creation (only used for creation)
         self.path_desag_params = {"dict_parameters_rl":dict_parameters,
@@ -63,7 +63,7 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
                         construct_trans_function = True,
                         exclude_chosen_nodes = exclude_chosen_nodes,
                         ignore_conflicts = ignore_conflicts,
-                        matrix_representation = matrix_representation)
+                        graph_representation = graph_representation)
         del self.path_desag_params
 
 

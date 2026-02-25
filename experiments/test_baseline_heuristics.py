@@ -189,7 +189,7 @@ def baseline_heurs_simulated_instances():
 ################################################################################################
 def baseline_heurs_real_instances(constructed_instances_path,
                                   path_results,
-                                  matrix_representation = True):
+                                  graph_representation = "adjacency_matrix"):
     #print("Current directory : ", os.getcwd())
     # Construction of the instances
     dict_instances = np.load(constructed_instances_path, 
@@ -236,7 +236,7 @@ def baseline_heurs_real_instances(constructed_instances_path,
                                             construct_trans_function = True,
                                             exclude_chosen_nodes = False,
                                             ignore_conflicts = False,
-                                            matrix_representation = matrix_representation)
+                                            graph_representation = graph_representation)
                 multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
                                                                                     path_card_criteria)
             
@@ -252,7 +252,7 @@ def baseline_heurs_real_instances(constructed_instances_path,
                                             construct_trans_function = True,
                                             exclude_chosen_nodes = False,
                                             ignore_conflicts = False,
-                                            matrix_representation = matrix_representation)
+                                            graph_representation = graph_representation)
                 multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
                                                                                     path_card_criteria)
 
@@ -268,7 +268,7 @@ def baseline_heurs_real_instances(constructed_instances_path,
                                             construct_trans_function = True,
                                             exclude_chosen_nodes = False,
                                             ignore_conflicts = False,
-                                            matrix_representation = matrix_representation)
+                                            graph_representation = graph_representation)
                 multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
                                                                                     path_card_criteria)
 
@@ -284,7 +284,7 @@ def baseline_heurs_real_instances(constructed_instances_path,
                                             construct_trans_function = True,
                                             exclude_chosen_nodes = False,
                                             ignore_conflicts = False,
-                                            matrix_representation = matrix_representation)
+                                            graph_representation = graph_representation)
                 multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
                                                                                     path_card_criteria)
             
@@ -309,7 +309,7 @@ def baseline_heurs_real_instances(constructed_instances_path,
                                                     mfd_instance.original_adj_mat, 
                                                     mfd_instance.ideal_transport_times, 
                                                     mfd_instance.pairs,
-                                                    matrix_representation = matrix_representation)
+                                                    graph_representation = graph_representation)
             """if prop_sp == None and exit_on_none:
                 print(multi_flow_desag)
                 sys.exit()"""
@@ -359,7 +359,7 @@ def main():
         path_results = "results/"+"results_versailles_heuristics.pickle"
         baseline_heurs_real_instances(constructed_instances_path,
                                       path_results,
-                                      matrix_representation = False)
+                                      graph_representation = "adjacency_list")
 
     elif test_name not in test_names:
         print("Test name is unrecognized.")

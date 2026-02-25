@@ -35,7 +35,7 @@ class MultiFlowDesagSolver():
                  construct_trans_function = False,
                  exclude_chosen_nodes = False,
                  ignore_conflicts = False,
-                 matrix_representation = True):
+                 graph_representation = "adjacency_matrix"):
         # Set the multi flow desaggregation instance
         self.mfd_instance = mfd_instance
         self.generated_flow_values = [0]*len(mfd_instance.original_flow_values)
@@ -74,7 +74,7 @@ class MultiFlowDesagSolver():
             self.constructed_transition_function = None
 
         # True iff matrix representation are used for the data
-        self.matrix_representation = matrix_representation
+        self.graph_representation = graph_representation
 
         # Create remainig attribute useful for path selection
         self.create_desaggregator_paths_attributes(path_selector_type, max_path_length, exclude_chosen_nodes)
@@ -111,7 +111,7 @@ class MultiFlowDesagSolver():
         # Set a subgraph filterer
         self.subg_constructor = SubGraphBestPathsConstructor(self.path_selector.path_selector_type,
                                                              self.mfd_instance,
-                                                             matrix_representation = self.matrix_representation)
+                                                             graph_representation = self.graph_representation)
     
 
     ########################################################   Iteration related func   ##################################################

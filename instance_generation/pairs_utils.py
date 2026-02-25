@@ -10,7 +10,13 @@ import itertools
 sys.path.append(os.getcwd())
 from instance_generation.maximum_flow_solver import EdmondKarpSolver
 from utils.shortest_path_solvers import DijkstraShortestPathsSolver
-from utils.graph_utils import in_degree, out_degree, sum_in_attributes, sum_out_attributes, init_graph_arc_attribute_vals, get_arcs
+from utils.graph_utils import (in_degree, 
+                               out_degree, 
+                               sum_in_attributes, 
+                               sum_out_attributes, 
+                               init_graph_arc_attribute_vals, 
+                               get_arcs,
+                               get_nodes)
 
 
 PAIRS_GENERATION_TYPES = {"random", "degree", "capacity", "min_cut", "all"}
@@ -93,29 +99,31 @@ def process_weight_pairs(pairs,
 ##################  
 #######                                Generate the O/D pairs randoimly
 ##################
-def generate_random_origin_destination_pairs (nb_pairs, graph_mat, nb_max_draws):
+def generate_random_origin_destination_pairs (nb_pairs, graph, nb_max_draws):
     """
     graph_mat can either be the adjacency matrix or the weights capacities 
     """
     ###################################################################################################
     # Modify this function to take into account random pair selection
     ###################################################################################################
-    # The weights associated to a node being a source calculated as the outdegree of the node
-    weight_sources = [int(any(graph_mat[i][:])) for i in range(len(graph_mat))]
-    # The weights associated to a node being a destination calculated as the indegree of the node
-    weight_destinations = [int(any(graph_mat[i][j] for i in range(len(graph_mat)))) for j in range(len(graph_mat))]
+    # Get all the nodes of a graph 
+    nodes = get_nodes(graph)
+    # Uniform random weights associated to a node being a source
+    weight_sources = [int(out_degree(graph, u) > 0) for u in nodes]
+    # Uniform random weights associated to a node being a destination calculated as the indegree of the node
+    weight_destinations = [int(in_degree(graph, v) > 0) for v in nodes]
     # Choose randomly 'nb_pairs' of source-destination pairs according to 'weight_sources' and 'weight_destinations'
     pairs, num_draw = [], 0
     while len(pairs) < nb_pairs and num_draw < nb_max_draws:
         # Chose randomly a pair
-        source = random.choices(list(range(len(graph_mat))), weights=weight_sources, k=1)[0]
-        destination = random.choices(list(range(len(graph_mat))), weights=weight_destinations, k=1)[0]
+        source = random.choices(nodes, weights=weight_sources, k=1)[0]
+        destination = random.choices(nodes, weights=weight_destinations, k=1)[0]
         num_draw += 1
         # A new pair is drawn as long as the last drawn pair has already been chosen or the source is the same as the destination (with 
         # a maximum of 'nb_max_draws' draws)
         while ((source, destination) in pairs or source == destination) and num_draw < nb_max_draws:
-            source = random.choices(list(range(len(graph_mat))), weights=weight_sources, k=1)[0]
-            destination = random.choices(list(range(len(graph_mat))), weights=weight_destinations, k=1)[0]
+            source = random.choices(nodes, weights=weight_sources, k=1)[0]
+            destination = random.choices(nodes, weights=weight_destinations, k=1)[0]
             num_draw += 1
         # The last drawn pair is added if it has not already been generated (not in 'pairs') and the source is different from the destination
         if (source, destination) not in pairs and source != destination: pairs.append((source, destination))
@@ -131,29 +139,31 @@ def generate_random_origin_destination_pairs (nb_pairs, graph_mat, nb_max_draws)
 ##################  
 #######                                Generate the O/D pairs using the degrees with adjacency matrix or the capacities with the matrix of capacities
 ##################
-def generate_origin_destination_pairs_local (nb_pairs, graph_mat, nb_max_draws):
+def generate_origin_destination_pairs_local (nb_pairs, graph, nb_max_draws):
     """
     graph_mat can either be the adjacency matrix or the weights capacities 
     """
     ###################################################################################################
     # Modify this function to take into account random pair selection
     ###################################################################################################
-    # The weights associated to a node being a source calculated as the outdegree of the node
-    weight_sources = [sum(graph_mat[i][:]) for i in range(len(graph_mat))]
-    # The weights associated to a node being a destination calculated as the indegree of the node
-    weight_destinations = [sum(graph_mat[i][j] for i in range(len(graph_mat))) for j in range(len(graph_mat))]
+    # Get all the nodes of a graph 
+    nodes = get_nodes(graph)
+    # Calculate the weights associated to a node being picked as a source
+    weight_sources = [out_degree(graph, u) for u in nodes]
+    # Calculate the weights associated to a node being picked as a destination
+    weight_destinations = [in_degree(graph, v) for v in nodes]
     # Choose randomly 'nb_pairs' of source-destination pairs according to 'weight_sources' and 'weight_destinations'
     pairs, num_draw = [], 0
     while len(pairs) < nb_pairs and num_draw < nb_max_draws:
         # Chose randomly a pair
-        source = random.choices(list(range(len(graph_mat))), weights=weight_sources, k=1)[0]
-        destination = random.choices(list(range(len(graph_mat))), weights=weight_destinations, k=1)[0]
+        source = random.choices(nodes, weights=weight_sources, k=1)[0]
+        destination = random.choices(nodes, weights=weight_destinations, k=1)[0]
         num_draw += 1
         # A new pair is drawn as long as the last drawn pair has already been chosen or the source is the same as the destination (with 
         # a maximum of 'nb_max_draws' draws)
         while ((source, destination) in pairs or source == destination) and num_draw < nb_max_draws:
-            source = random.choices(list(range(len(graph_mat))), weights=weight_sources, k=1)[0]
-            destination = random.choices(list(range(len(graph_mat))), weights=weight_destinations, k=1)[0]
+            source = random.choices(nodes, weights=weight_sources, k=1)[0]
+            destination = random.choices(nodes, weights=weight_destinations, k=1)[0]
             num_draw += 1
         # The last drawn pair is added if it has not already been generated (not in 'pairs') and the source is different from the destination
         if (source, destination) not in pairs and source != destination: pairs.append((source, destination))
@@ -169,6 +179,9 @@ def generate_origin_destination_pairs_local (nb_pairs, graph_mat, nb_max_draws):
 ##################  
 #######                        Generate the O/D pairs using the maximum flow           
 ##################
+"""
+Not yet modified to support adjacency lists
+"""
 def generate_origin_destination_pairs_global (nb_pairs, adj_mat, capacities, nb_max_draws, transport_times):
     # For each possible O/D pair, process its weight as the value of the max flow from the source to the destination
     all_weights = []

@@ -27,13 +27,13 @@ class SubGraphConstructor(ABC):
 ##########
 class SubGraphBestPathsConstructor(SubGraphConstructor):
 
-    def __init__(self, path_selector_type, mfd_instance, matrix_representation = True):
+    def __init__(self, path_selector_type, mfd_instance, graph_representation = "adjacency_matrix"):
         # The path selector type
         self.path_selector_type = path_selector_type
         # The multi flow desaggregation instance
         self.mfd_instance = mfd_instance
         # Boolean showing how the graph is represented
-        self.matrix_representation = matrix_representation
+        self.graph_representation = graph_representation
     
     
     def _exist_path (self):
@@ -66,7 +66,7 @@ class SubGraphBestPathsConstructor(SubGraphConstructor):
                                                            self.mfd_instance.adj_mat, 
                                                            weight_mat, 
                                                            mode = mode,
-                                                           matrix_representation = self.matrix_representation)
+                                                           graph_representation = self.graph_representation)
         # Run dijkstra
         self.dijkstra_solver.run_dijkstra()
         # Construct and return the subgraph of shortest path (which may or may not be a DAg according to the value of self.path_selector_type)
@@ -81,11 +81,11 @@ class SubGraphBestPathsConstructor(SubGraphConstructor):
 ##########
 class SubGraphConstructorTransF(SubGraphConstructor):
 
-    def __init__(self, path_selector_type, mfd_instance, max_trans_func_successor = False, matrix_representation = True):
+    def __init__(self, path_selector_type, mfd_instance, max_trans_func_successor = False, graph_representation = "adjacency_matrix"):
         self.path_selector_type = path_selector_type
         self.mfd_instance = mfd_instance
         self.max_trans_func_successor = max_trans_func_successor
-        self.matrix_representation = matrix_representation
+        self.graph_representation = graph_representation
 
 
     def check_filtering_cond_successors (self, cur_elem, next_node, first_check = False):
@@ -111,7 +111,7 @@ class SubGraphConstructorTransF(SubGraphConstructor):
         """
         # Initalizations, create and push to the queue the outgoing arcs from 'source' 
         queue = []
-        subgraph = create_isolated_nodes_graph(len(graph), matrix_representation = self.matrix_representation)
+        subgraph = create_isolated_nodes_graph(len(graph), graph_representation = self.graph_representation)
         visited = init_graph_arc_attribute_vals(graph, init_val = False)
         max_val_flow_arc = -1 if not max_trans_func_successor else max(trans_from_sources[source][succ_arc] for succ_arc in trans_from_sources[source])
         for succ_arc in trans_from_sources[source]:
@@ -153,7 +153,7 @@ class SubGraphConstructorTransF(SubGraphConstructor):
                                 trans_to_destinations):
         # Initalizations, create and push to the queue the outgoing arcs from 'source' 
         queue = []
-        subgraph = create_isolated_nodes_graph(len(graph), matrix_representation = self.matrix_representation)
+        subgraph = create_isolated_nodes_graph(len(graph), graph_representation = self.graph_representation)
         visited = init_graph_arc_attribute_vals(graph, init_val = False)
         for pred_arc in trans_to_destinations[destination]:
             if has_arc(graph, pred_arc[0], pred_arc[1]) and\
@@ -199,10 +199,10 @@ class SubGraphConstructorTransF(SubGraphConstructor):
 
 
 class SubGraphConstructorRL (SubGraphConstructorTransF):
-    def __init__ (self, path_selector_type, mfd_instance, mfd_solver, matrix_representation = True):
+    def __init__ (self, path_selector_type, mfd_instance, mfd_solver, graph_representation = "adjacency_matrix"):
         super().__init__(path_selector_type, mfd_instance, 
                          max_trans_func_successor = False,
-                         matrix_representation = matrix_representation)
+                         graph_representation = graph_representation)
         # The class does not support UCB and Hierarchical pursuit algorithms
         if mfd_solver.path_selector.dict_parameters["ag_type"] == "UCB" or\
             mfd_solver.path_selector.dict_parameters["ag_type"] == "Hier_cont_pursuit":

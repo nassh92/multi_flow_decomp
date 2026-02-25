@@ -77,7 +77,10 @@ def generate_random_instance(nb_nodes, grid_size, r, nb_arcs, max_nb_draws_gen_g
                                                         print_ = print_)
 
     # Generate the transport times
-    transport_times = generate_transport_time(raw_transport_times, spanning_tree_pred = span_tree_pred, fraction = transport_time_fraction)
+    transport_times = generate_transport_time(adj_mat,
+                                              raw_transport_times, 
+                                              spanning_tree_pred = span_tree_pred, 
+                                              fraction = transport_time_fraction)
 
     # Generate the pairs and the weights following the value of 'pairs_generation'
     if pairs_generation == "random":

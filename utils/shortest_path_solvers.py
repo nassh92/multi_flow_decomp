@@ -23,13 +23,13 @@ class DijkstraShortestPathsSolver:
 
     def __init__(self, source, graph, weights, 
                  mode = "min_distance", 
-                 matrix_representation = True, 
+                 graph_representation = "adjacency_matrix", 
                  optional_infos = None):
         # The source, the graph matrix an the weight matrix
         self.source = source
         self.graph = graph
         self.weights = weights
-        self.matrix_representation = matrix_representation
+        self.graph_representation = graph_representation
 
         # The mode is how to intrepret the weights as well the estimate of the paths
         if mode not in MODES:
@@ -189,7 +189,7 @@ class DijkstraShortestPathsSolver:
         self.destination = destination
         self.visited = [False]*len(self.graph)
         self.dagsp = create_isolated_nodes_graph(len(self.graph), 
-                                                 matrix_representation = self.matrix_representation)
+                                                 graph_representation = self.graph_representation)
 
         # Find the DAG pf shortest paths
         self._backward_traverse_DAGSP_creation()
@@ -257,7 +257,7 @@ class DijkstraShortestPathsSolver:
                                                                  graph = self.dagsp,
                                                                  weights = self.dagsp, 
                                                                  mode = "min_distance",
-                                                                 matrix_representation = self.matrix_representation)
+                                                                 graph_representation = self.graph_representation)
             dijkstra_solver_filter.run_dijkstra()
             dijkstra_solver_filter.construct_DAG_shortest_path(destination)
             self.dagsp = dijkstra_solver_filter.dagsp    # And this is certainly a DAG
