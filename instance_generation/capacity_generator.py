@@ -29,7 +29,7 @@ def generate_capacities (graph, base_capacity, factor, print_ = False):
         node = queue.pop(0)
         
         # # Return the successor of 'node'
-        successors_node = successors(node)
+        successors_node = successors(graph, node)
 
         # Browse through the successors of 'node' and if unvisited, update their distance from the source and their visited status
         for succ in successors_node:
@@ -45,7 +45,7 @@ def generate_capacities (graph, base_capacity, factor, print_ = False):
     init_val = lambda u, v, dict_attr_params: dict_attr_params["base_capacity"] * dict_attr_params["factor"] if dict_attr_params["pred"][v]==u or dict_attr_params["pred"][u]==v else dict_attr_params["base_capacity"]
     caps = init_graph_arc_attribute_vals(graph,
                                          init_val = init_val,
-                                         dict_attr_params = dict_attr_params)
+                                         dict_params = dict_attr_params)
     
     if print_: print ("Predecessors ", pred)
 

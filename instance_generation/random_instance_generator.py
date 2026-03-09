@@ -27,40 +27,43 @@ from instance_generation.pairs_utils import (generate_random_origin_destination_
 
 from instance_generation.display_utils_gen import display_instance
 
-from instance_generation.real_instances_wei_based.saint_lieu_instance_generator import generate_instance_saint_lieu
+#from instance_generation.real_instances_wei_based.saint_lieu_instance_generator import generate_instance_saint_lieu
 
 
 
 ############################################################## RANDOM INSTANCE GENERATOR ########################################################
-def generate_random_instance(nb_nodes, grid_size, r, nb_arcs, max_nb_draws_gen_graph, 
+def generate_random_instance(nb_nodes, grid_size, r, nb_edges, max_nb_draws_gen_graph, 
                              max_nb_tries_gen_graph, base_capacity, 
                              capacity_factor, transport_time_fraction, 
                              nb_pairs, nb_max_draws_pairs,
                              sorting_criteria = "distance",
                              max_nb_neighbours = None, small_world_like = False,
-                             distance_type = "euclidean", pairs_generation = "degree", 
+                             distance_type = "euclidean", pairs_generation = "degree",
+                             graph_representation = "adjacency_matrix", 
                              pairs_criteria = 0, print_ = False):
     # Generate a random planar graph
     if not small_world_like:
         adj_mat, arcs, nodes, raw_transport_times = generate_random_planar_graph(nb_nodes = nb_nodes,
                                                                                     grid_size = grid_size, 
                                                                                     r = r, 
-                                                                                    nb_arcs = nb_arcs, 
+                                                                                    nb_edges = nb_edges, 
                                                                                     max_nb_draws = max_nb_draws_gen_graph, 
                                                                                     max_nb_tries = max_nb_tries_gen_graph,
                                                                                     max_nb_neighbours = max_nb_neighbours, 
                                                                                     distance_type = distance_type,
+                                                                                    graph_representation = graph_representation,
                                                                                     print_ = print_)
     else:
         adj_mat, arcs, nodes, raw_transport_times = generate_random_small_world_like_planar_graph(nb_nodes = nb_nodes,
                                                                                     grid_size = grid_size, 
                                                                                     r = r, 
-                                                                                    nb_arcs = nb_arcs, 
+                                                                                    nb_edges = nb_edges, 
                                                                                     max_nb_draws = max_nb_draws_gen_graph, 
                                                                                     max_nb_tries = max_nb_tries_gen_graph,
                                                                                     max_nb_neighbours = max_nb_neighbours,
-                                                                                    sorting_criteria = sorting_criteria, 
+                                                                                    sorting_criteria = sorting_criteria,
                                                                                     distance_type = distance_type,
+                                                                                    graph_representation = graph_representation, 
                                                                                     print_ = print_)
 
     if isinstance(adj_mat, bool):
@@ -71,7 +74,7 @@ def generate_random_instance(nb_nodes, grid_size, r, nb_arcs, max_nb_draws_gen_g
         sys.exit()
     
     # Generate the capacities
-    capacities, span_tree_pred = generate_capacities (adj_mat = adj_mat, 
+    capacities, span_tree_pred = generate_capacities (graph = adj_mat, 
                                                         base_capacity = base_capacity, 
                                                         factor = capacity_factor, 
                                                         print_ = print_)
@@ -280,6 +283,8 @@ def main():
                           print_ = False)
     
     elif test_name == "generate_weights_real_instance":
+        pass
+        """
         dir_name = "instance_generation/real_instance/"
         adj_mat, capacities, transport_times, pairs, _ = generate_instance_saint_lieu()
         degres_sortant = [sum(adj_mat[node][:]) for node in range(len(adj_mat))]
@@ -293,6 +298,7 @@ def main():
         weight_pairs = list(np.load(os.path.join(dir_name, "weights_real_instance.npy"), allow_pickle = True))
         print("Weights of pairs from file ")
         print(weight_pairs)
+        """
 
 
 

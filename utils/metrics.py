@@ -108,7 +108,7 @@ def flow_proportion_shortest_paths (multi_flow_desag, unattributed_flow, adj_mat
     # Calculate sum of total flow
     sum_flow_agg = sum(sum(row) for row in aggreg_flow)
     if sum_flow_agg == 0:
-        print("Will give a division by zero error.")
+        print("Will give a division by zero error ('flow_proportion_shortest_paths').")
         return None
 
     # Process the union of the DAGs of shortest paths for each pairs
@@ -152,7 +152,7 @@ def instance_flow_proportion_shortest_paths (adj_mat,
     # Calculate sum of total flow
     sum_flow_agg = sum(sum(row) for row in original_aggregated_flow)
     if sum_flow_agg == 0:
-        print("Will give a division by zero error.")
+        print("Will give a division by zero error ('instance_flow_proportion_shortest_paths').")
         return None
     
     # Calculate the adjacency matrix of the graph associated to the union of all 

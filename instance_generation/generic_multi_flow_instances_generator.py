@@ -79,7 +79,7 @@ def generate_multi_flow_instance(graph,
                                  desired_flow_values, 
                                  min_fl = 1, 
                                  nb_it_print = None,
-                                 pairs_generation = "capacity",
+                                 pairs_selection = "capacity",
                                  weight_pairs = None,
                                  predecessors_list = None,
                                  return_transition_function = False):
@@ -96,7 +96,7 @@ def generate_multi_flow_instance(graph,
                                             graph, 
                                             arc_attribute_vals = capacities,
                                             predecessors_list = predecessors_list, 
-                                            pairs_generation = pairs_generation)
+                                            pairs_selection = pairs_selection)
 
     # Initializations
     cpt_saturated, nb_it = 0, 0
@@ -384,6 +384,7 @@ def main():
     if test_name == "generate_multi_flow_instances_from_saved_graph_instances":
         construct_multi_flow_instances_from_saved_graph_instances(dir_data_name = "instance_generation/instances/capacity/",
                                                                   dir_save_name = "multi_flow_generation/transition_function_instances/", 
+                                                                  pairs_generation = "capacity",
                                                                   return_transition_function = True)
      
     elif test_name == "multi_generate_multi_flow_instances_from_saved_graph_instances":

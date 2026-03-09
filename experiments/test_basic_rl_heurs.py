@@ -90,18 +90,22 @@ def run_experiment (mfd_instance,
 
 
 ###################################   Tests   ###################################
-def basic_rl_heurs_simulated_instances():
+def basic_rl_heurs_simulated_instances(constructed_instances_path = None, 
+                                        path_results = None,
+                                        debug = False,
+                                        multi_process = True,
+                                        print_ = False):
     from msmd.multi_flow_desag_instance_utils import construct_instances
     print("Starting main.")
     # Construction of the instances
     #constructed_instances_path = "data/simulated_data/complete_instances/node_pairs/data_instances_random_75_15.npy"
-    constructed_instances_path = "data/data_instances_small_world_200_20.npy"
+    #constructed_instances_path = "data/data_instances_small_world_200_20.npy"
     print(constructed_instances_path)
     time.sleep(20)
     dir_name_graph_instance = "data/simulated_data/instances/random/instances_nbnodes=95_pairs=20/"
     dir_name_multi_flow_instance = "multi_flow_generation/transition_function_instances/"
     #path_results = "results/simulated/MFDS_vs_RL/results_test/"+"results_rl_heuristics.npy"
-    path_results = "results/"+"results_rl_heuristics_discount_by_length_smallworld.pickle"
+    #path_results = "results/"+"results_rl_heuristics_discount_by_length_smallworld.pickle"
 
     # Common parameters values
     max_path_length = 10000
@@ -120,8 +124,10 @@ def basic_rl_heurs_simulated_instances():
     coeffs_list = [(0.33, 0.33, 0.34)]
 
     # Test names
-    ls_path_selector_types = ["rl_node_based", "rl_arc_based"]
-    ls_path_card_criteria = ["one_only", "one_for_each"]
+    #ls_path_selector_types = ["rl_node_based", "rl_arc_based"]
+    ls_path_selector_types = ["rl_arc_based"]
+    #ls_path_card_criteria = ["one_only", "one_for_each"]
+    ls_path_card_criteria = ["one_only"]
     #ls_learning_rates = [0.01, 0.025, 0.05, 0.075, 0.1]
     ls_learning_rates = [0.01]
     # Successor selector types
@@ -135,10 +141,8 @@ def basic_rl_heurs_simulated_instances():
                           "multi_flow_residue", "prop_flow_support", 
                           "prop_shortest_paths", "transition_function_residue",
                           "reward"]
+    graph_representation = "adjacency_list"
     
-    
-    debug = False
-    multi_process = True
     if debug:
         multi_process = False
      
@@ -146,8 +150,6 @@ def basic_rl_heurs_simulated_instances():
     
 
     print("Nb of CPUs ", nb_phys_cpus, nb_cpus)
-    
-    jobs = []
     
     manager = multiprocessing.Manager()
 
@@ -179,7 +181,7 @@ def basic_rl_heurs_simulated_instances():
         ls_args = [] 
     
     for ind_instance, _, _ in dict_instances:
-        print("Treating instance ", ind_instance)
+        if print_: print("Treating instance ", ind_instance)
         for path_type_selector in ls_path_selector_types:
             for path_card_criteria in ls_path_card_criteria:
                 for lr_rate in ls_learning_rates:
@@ -193,10 +195,11 @@ def basic_rl_heurs_simulated_instances():
                         original_multi_flow = dict_instances[(ind_instance, True, True)][1]
                         
                         opt_params = {"penalty_init_val":0, 
-                                    "decay_param":1.0,
+                                    "decay_param":None,
                                     "reward_discount_type":"discount_by_length",
-                                    "penalize_circuits":True,
-                                    "circuit_penalty_param":0.0005}
+                                    "penalize_circuits":False,
+                                    "circuit_penalty_param":None,
+                                    "graph_representation":graph_representation}
                         
                         if path_card_criteria == "one_only":
                             reodering_pairs_policy_name = None
@@ -236,7 +239,8 @@ def basic_rl_heurs_simulated_instances():
                                             path_card_criteria,
                                             (coeff1, coeff2, coeff3),
                                             successor_selector_type = successor_selector_type,
-                                            rl_data_init_type = rl_data_init_type)
+                                            rl_data_init_type = rl_data_init_type,
+                                            graph_representation = graph_representation)
                         else:
                             ls_args.append((mfd_instance,
                                             dict_results,
@@ -254,17 +258,20 @@ def basic_rl_heurs_simulated_instances():
                                             opt_params,
                                             pair_criteria, 
                                             path_card_criteria,
-                                            (coeff1, coeff2, coeff3)))
+                                            (coeff1, coeff2, coeff3),
+                                            successor_selector_type,
+                                            rl_data_init_type,
+                                            graph_representation))
 
     if not debug:
         nb_finished = 0
-        print("Avancement ", 0, " %")
+        if print_: print("Avancement ", 0, " %")
         with concurrent.futures.ProcessPoolExecutor(max_workers = nb_cpu_workers) as executor:
             results = [executor.submit(run_experiment, *args) for args in ls_args]
             for f in concurrent.futures.as_completed(results):
                 f.result()
                 nb_finished += 1
-                print("Avancement ", round(100*nb_finished/len(results), 2), " %")
+                if print_: print("Avancement ", round(100*nb_finished/len(results), 2), " %")
     
     # Save
     #  = ["path_type_selector", "path_card_criteria", "lr_rate", "coeffs_list"]
@@ -275,6 +282,28 @@ def basic_rl_heurs_simulated_instances():
                      handle,
                      protocol = pickle.HIGHEST_PROTOCOL)
         
+
+
+
+def basic_rl_heurs_simulated_multiple_instances_set(dir_path_data,
+                                                    list_file_names_instances, 
+                                                    dir_results,
+                                                    debug = False,
+                                                    multi_process = True,
+                                                    print_ = False):
+    for f_name in list_file_names_instances:
+        constructed_instances_path = dir_path_data+f_name
+        print("Treatment of ", f_name)
+        basic_rl_heurs_simulated_instances(
+                                        constructed_instances_path, 
+                                        dir_results+"rl_heuristics_"+f_name[:-4]+".gpickle",
+                                        debug = debug,
+                                        multi_process = multi_process,
+                                        print_ = print_
+                                        )
+
+
+
 
 def basic_rl_heurs_lieu_saint_real_instances():
     print("Satring main.")
@@ -449,11 +478,24 @@ def basic_rl_heurs_lieu_saint_real_instances():
 
 #Main function
 def main():
-    test_names = {"simulated_instances", "lieu_saint_real_instances"}
-    test_name = "simulated_instances"
+    test_names = {"simulated_instances",
+                  "simulate_instances_set", 
+                  "lieu_saint_real_instances"}
+    test_name = "simulate_instances_set"
 
     if test_name == "simulated_instances":
         basic_rl_heurs_simulated_instances()
+
+    elif test_name == "simulate_instances_set":
+        dir_results = "results/"
+        ls_param_vals = list(product([100, 150, 200], [10, 15, 20], [3, 4]))
+        list_file_names_instances = ["nb_nodes="+str(a)+"_nb_pairs="+str(b)+"_nb_neighbours="+str(c)+".npy" for a, b , c in ls_param_vals]
+        basic_rl_heurs_simulated_multiple_instances_set(dir_path_data = "data/capacity_factor=14/",
+                                                        list_file_names_instances = list_file_names_instances , 
+                                                        dir_results = dir_results,
+                                                        debug = False,
+                                                        multi_process = True,
+                                                        print_ = False)
 
     elif test_name == "lieu_saint_real_instances":
         basic_rl_heurs_lieu_saint_real_instances()

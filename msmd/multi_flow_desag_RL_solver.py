@@ -148,13 +148,11 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
 
         reward = 1 - total_weight_error
 
-        discounted_reward = self._reward_discount(reward)
-
         if total_weight_error > 1.0000001 or total_weight_error < 0:
             print("Total weigted error is out of range.")
             sys.exit()
         
-        return discounted_reward, fl_val_res, fl_res, transf_res
+        return reward, fl_val_res, fl_res, transf_res
     
 
     def store_performance_metrics(self, ls_perfs):
@@ -208,7 +206,7 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
                                            increment_cons_tries = False,
                                            reset_cons_tries = (len(selected_pairs) > 0))
             
-            if self._has_iterated_too_much(): print("!!!! Maximum iteration number attained. !!! ")
+            if self._has_iterated_too_much() and show: print("!!!! Maximum iteration number attained. !!! ")
             # Process relevant perfomance metric (including the reward)
             reward, fl_val_res, fl_res, transf_res = self.process_perfs(multi_flow, coeff1, coeff2, coeff3)
             # Save the relevant performance metrics if we want to

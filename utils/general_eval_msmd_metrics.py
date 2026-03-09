@@ -102,7 +102,7 @@ def flow_proportion_shortest_paths (multi_flow_desag, graph, transport_times, pa
     # Calculate sum of total flow
     sum_flow_agg = sum(aggreg_flow[u][v] for u, v in arcs_list)
     if sum_flow_agg == 0:
-        print("Will give a division by zero error.")
+        print("Will give a division by zero error (func 'flow_proportion_shortest_paths').")
         return None
 
     # Process the union of the DAGs of shortest paths for each pairs
@@ -165,7 +165,7 @@ def instance_flow_proportion_shortest_paths (graph,
     # Calculate sum of total flow
     sum_flow_agg = sum(original_aggregated_flow[u][v] for u, v in arcs)
     if sum_flow_agg == 0:
-        print("Will give a division by zero error.")
+        print("Will give a division by zero error  (func 'instance_flow_proportion_shortest_paths').")
         return None
     
     # Calculate the adjacency matrix of the graph associated to the union of all 

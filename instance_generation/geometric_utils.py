@@ -80,7 +80,7 @@ def sort_candidate_neighbours(P,
                                                              distance_type = distance_type))
     
     elif sorting_criteria == "distance_n_nb_neighbours":
-        adj_mat, nodes = opt_params["adj_mat"], opt_params["nodes"]
+        adj_mat, nodes = opt_params["graph"], opt_params["nodes"]
         sorted_points = sorted(near_points, 
                                key = lambda point : (distance(P, 
                                                              point, 
@@ -89,7 +89,7 @@ def sort_candidate_neighbours(P,
                                                     ))
         
     elif sorting_criteria == "nb_neighbours_n_distance":
-        adj_mat, nodes = opt_params["adj_mat"], opt_params["nodes"]
+        adj_mat, nodes = opt_params["graph"], opt_params["nodes"]
         sorted_points = sorted(near_points, 
                                key = lambda point : (len(get_neighbours(adj_mat, nodes[point])),
                                                      distance(P, 

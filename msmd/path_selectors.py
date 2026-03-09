@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 import os
 sys.path.append(os.getcwd())
-from utils.graph_utils import make_path_simple, successors, has_arc
+from utils.graph_utils import make_path_simple, successors, has_arc, init_graph_arc_attribute_vals
 from utils.shortest_path_solvers import DijkstraShortestPathsSolver 
 from msmd.stateless_RL_agents import (POLICY_BASED_TYPE_AGENTS,
                                             VALUE_BASED_TYPE_AGENTS,
@@ -16,7 +16,6 @@ from msmd.successor_selectors import(LargestFlowSuccessorSelector,
                                            TransFuncSuccessorSelector,
                                            RLSuccessorSelector,
                                            RLSuccessorSelectorExpoDecay,
-                                           RLSuccessorSelectorPenalizeCircuits,
                                            SUCCESSORS_SELECTOR_TYPES)
 
 
@@ -34,11 +33,16 @@ REWARD_DISCOUNT_TYPES = {"no_discount",
                          "discount_by_length",
                          "discount_by_cost"}
 
+PRINT_PATH_NOT_FOUND = False 
+
 ##########
 #####################################  PATH SELECTION - Path Selectors  #####################################
 ##########
 class PathSelector(ABC):
-    def __init__(self, path_selector_type, max_path_length, exclude_chosen_nodes):
+    def __init__(self, 
+                 path_selector_type, 
+                 max_path_length, 
+                 exclude_chosen_nodes):
         # Set path_selector_type after checking
         if path_selector_type not in PATH_SELECTOR_TYPES:
             print("Path selector type is unrecognized : ", path_selector_type)
@@ -48,7 +52,7 @@ class PathSelector(ABC):
         # Set the maximum length of path (useful to not have a infinite loop during path construction)
         self.max_path_length = max_path_length
         # Set to True iif we want to exlude the already chosen nodes during path construction
-        self.exclude_chosen_nodes = exclude_chosen_nodes
+        self.exclude_chosen_nodes = exclude_chosen_nodes 
 
 
     @abstractmethod
@@ -74,7 +78,7 @@ class RandomPathSelector(PathSelector):
         cur_path = path if self.exclude_chosen_nodes else None 
         path_length = 0
         while node != destination and path_length < self.max_path_length:
-            node = self.successor_selector.chose_successor(self, node, graph_mat, cur_path = cur_path)
+            node = self.successor_selector.chose_successor(node, graph_mat, cur_path = cur_path)
             if node is not None:
                 path.append(node)
                 path_length += 1
@@ -83,7 +87,7 @@ class RandomPathSelector(PathSelector):
                 return None
         
         if path_length == self.max_path_length and node != destination:
-            print("Max path length is attained ", path_length)
+            if PRINT_PATH_NOT_FOUND: print("Max path length is attained ", path_length)
             return None
         
         return make_path_simple (path)
@@ -118,7 +122,7 @@ class LargestFlowPathSelector(PathSelector):
                 return None
         
         if path_length == self.max_path_length and node != destination:
-            print("Max path length is attained ", path_length)
+            if PRINT_PATH_NOT_FOUND: print("Max path length is attained ", path_length)
             return None
         
         return make_path_simple (path)
@@ -151,7 +155,7 @@ class PathSelectorTransFunc(PathSelector):
                 return None
         
         if path_length == self.max_path_length and arc[1] != destination:
-            print("Max path length is attained ", path_length)
+            if PRINT_PATH_NOT_FOUND: print("Max path length is attained ", path_length)
             return None
         
         return make_path_simple (path)
@@ -370,6 +374,9 @@ class RLPathSelector(PathSelector):
         # Intializing the parameters of the RL algorithm
         self.dict_parameters = dict_parameters
 
+        # Store the graph representation 
+        self.graph_representation = opt_params.get("graph_representation", "adjacency_matrix")
+
         # Store reward type
         self.reward_discount_type = opt_params.get("reward_discount_type", "no_discount") if opt_params is not None else "no_discount"
 
@@ -412,7 +419,7 @@ class RLPathSelector(PathSelector):
                                                                 opt_params["decay_param"])
         
         else:
-            print("RL successor type not recognized.")
+            if PRINT_PATH_NOT_FOUND: print("RL successor type not recognized.")
             sys.exit()
 
 
@@ -427,11 +434,23 @@ class RLPathSelector(PathSelector):
         elif self.reward_discount_type == "discount_by_length":
             length_path = len(chosen_path)
             graph = self.mfd_instance.adj_mat
+
+            if self.graph_representation == "adjacency_matrix":
+                weights = graph
+            
+            elif self.graph_representation == "adjacency_list":
+                weights = init_graph_arc_attribute_vals(graph, 
+                                                        init_val = 1)
+            
+            else:
+                print("Not supported.")
+                sys.exit()
+            
             dijkstra_solver = DijkstraShortestPathsSolver(source = chosen_path[0],
                                                           graph = graph,
-                                                          weights = graph, 
+                                                          weights = weights, 
                                                           mode = "min_distance",
-                                                          graph_representation = self.mfd_instance.graph_representation)
+                                                          graph_representation = self.graph_representation)
             dijkstra_solver.run_dijkstra()
             minimal_length = dijkstra_solver.path_estimates[chosen_path[-1]]
             self.selected_paths_data.append((chosen_path, minimal_length/length_path))
@@ -443,7 +462,7 @@ class RLPathSelector(PathSelector):
                                                           graph = graph,
                                                           weights = transport_times, 
                                                           mode = "min_distance",
-                                                          graph_representation = self.mfd_instance.graph_representation)
+                                                          graph_representation = self.graph_representation)
             dijkstra_solver.run_dijkstra()
             minimal_cost = dijkstra_solver.path_estimates[chosen_path[-1]]
             self.selected_paths_data.append((chosen_path, minimal_cost/cost_path))
@@ -476,7 +495,7 @@ class RLPathSelector(PathSelector):
                 return None
 
         if path_length == self.max_path_length:
-            print("Max path length is attained ", path_length)
+            if PRINT_PATH_NOT_FOUND: print("Max path length is attained ", path_length)
             return None
         
         chosen_path = make_path_simple (path) if self.circuit_penalizer is None else path

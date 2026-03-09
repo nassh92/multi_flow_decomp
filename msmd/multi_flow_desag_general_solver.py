@@ -275,7 +275,9 @@ class MultiFlowDesagSolver():
          # Select a  paths for one (or each) pair
         selected_pairs = self.select_paths_pairs(pair_criteria, path_card_criteria, multi_flow, dict_infos_rem_pairs_paths, dict_rem_ind_pairs)
         # Main loop
+        nb_it = 0
         while len(dict_infos_rem_pairs_paths) > 0 and not self._has_iterated_too_much ():
+            nb_it += 1
             # print(len(dict_infos_rem_pairs_paths))
             # Update the flow on each path
             self.update_multi_flow_network(multi_flow, selected_pairs, dict_infos_rem_pairs_paths)
@@ -290,8 +292,13 @@ class MultiFlowDesagSolver():
             self._update_iteration_num(increment_num_it = False, 
                                        increment_cons_tries = False,
                                        reset_cons_tries = (len(selected_pairs) > 0))
-        print("Number of iteration ", self.num_it)
-        if self._has_iterated_too_much (): print("!!!! Maximum iteration number attained. !!!!!")
+        
+        if show: print("Number of iteration ", self.num_it)
+        """if self.num_it == 0:
+            print(dict_infos_rem_pairs_paths)
+            print("Number of iterations ", nb_it, (len(dict_infos_rem_pairs_paths) > 0), self._has_iterated_too_much ()) 
+            sys.exit()"""
+        if self._has_iterated_too_much () and show: print("!!!! Maximum iteration number attained. !!!!!")
         return multi_flow, self.generated_flow_values
 
 

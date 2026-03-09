@@ -5,7 +5,7 @@ import os
 import sys
 import time
 sys.path.append(os.getcwd())
-from utils.graph_utils import make_path_simple, create_isolated_nodes_graph, successors, predecessors, add_arc, has_arc, get_nodes
+from utils.graph_utils import make_path_simple, create_isolated_nodes_graph, successors, predecessors, add_arc, has_arc, get_nodes, init_graph_arc_attribute_vals
 
 
 MODES = ["min_distance", "max_capacity"]
@@ -253,9 +253,26 @@ class DijkstraShortestPathsSolver:
             # To do this construct a new dijkstra solver on the subgraph constructed on the precedent step
             # Set the weight matrix of the solver as the graph matrix of the previously constructed subgraph
             # Call the dijkstra algorithm on this new solver and construct the DAG of shortest path out of it
+            dict_params = {"graph":self.dagsp}
+            init_val = lambda u, v, dict_params : 1 if has_arc(dict_params["graph"], u, v) else 0 
+            weights = init_graph_arc_attribute_vals(self.dagsp, 
+                                                    init_val = init_val, 
+                                                    dict_params = dict_params)
+            
+            if self.graph_representation == "adjacency_matrix":
+                weights = self.dagsp
+            
+            elif self.graph_representation == "adjacency_list":
+                weights = init_graph_arc_attribute_vals(self.dagsp, 
+                                                        init_val = 1)
+            
+            else:
+                print("Shortest paths not supported yet in RL Path Selector.")
+                sys.exit()
+
             dijkstra_solver_filter = DijkstraShortestPathsSolver(source = self.source,
                                                                  graph = self.dagsp,
-                                                                 weights = self.dagsp, 
+                                                                 weights = weights, 
                                                                  mode = "min_distance",
                                                                  graph_representation = self.graph_representation)
             dijkstra_solver_filter.run_dijkstra()

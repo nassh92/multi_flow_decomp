@@ -60,12 +60,13 @@ def process_performances(flow_vals_desagg,
                                                 original_aggregated_flow,
                                                 graph)
     
-    coeff1, coeff2, coeff3 = test_infos[-1]
-    total_weight_error = coeff1 * flow_val_res + coeff2 * flow_res + coeff3 * trans_func_res
-    if total_weight_error > 1.0000001 or total_weight_error < 0:
-        print("Total weigted error is out of range.")
-        sys.exit()
-    reward = 1 - total_weight_error
+    if isinstance(test_infos[-1], tuple):
+        coeff1, coeff2, coeff3 = test_infos[-1]
+        total_weight_error = coeff1 * flow_val_res + coeff2 * flow_res + coeff3 * trans_func_res
+        if total_weight_error > 1.0000001 or total_weight_error < 0:
+            print("Total weigted error is out of range.")
+            sys.exit()
+        reward = 1 - total_weight_error
 
     if print_:
         print("Proportion of support arcs  ", prop_fsupp)
@@ -77,9 +78,12 @@ def process_performances(flow_vals_desagg,
         print("Desaggregated Flow values ", flow_vals_desagg)
     #time.sleep(0.5)
     key = process_key(ind_instance, test_infos, opt_params)
+    
+    if isinstance(test_infos[-1], tuple):
+        elem = (flow_val_res, flow_res, m_flow_res, prop_fsupp, prop_sp, trans_func_res, reward)
+    else:
+        elem = (flow_val_res, flow_res, m_flow_res, prop_fsupp, prop_sp, trans_func_res)
+    
     update_dict_results(dict_results, 
                         key, 
-                        (flow_val_res, flow_res, 
-                        m_flow_res, prop_fsupp, 
-                        prop_sp, trans_func_res,
-                        reward))
+                        elem)

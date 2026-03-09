@@ -103,11 +103,12 @@ def generate_random_small_world_like_planar_graph(nb_nodes,
         nodes = generate_nodes(grid_size, nb_nodes)
 
         # Construct an adjacency matrix whose entries are intialized to 0
-        graph = create_isolated_nodes_graph(nb_nodes, graph_representation = graph_representation)
+        graph = create_isolated_nodes_graph(nb_nodes, 
+                                            graph_representation = graph_representation)
 
         # Generate the arcs of the planar random graph
-        nb_draws, arcs, points = 0, set(), list(nodes.keys())
-        while len(arcs) < nb_arcs and nb_draws < max_nb_draws:
+        nb_draws, arcs_segs, points = 0, set(), list(nodes.keys())
+        while len(arcs_segs) < nb_edges and nb_draws < max_nb_draws:
             # Affichage du numéro de tirage 'nb_draws'
             if print_ and nb_draws % 10 == 0:
                 print("The try number / Number of nodes pairs drawn ", nb_tries, " / ",nb_draws)
@@ -118,7 +119,7 @@ def generate_random_small_world_like_planar_graph(nb_nodes,
                                                   points, 
                                                   r, 
                                                   distance_type = distance_type)
-            opt_params = {"adj_mat":graph, "nodes":nodes}
+            opt_params = {"graph":graph, "nodes":nodes}
             candidate_neighbours = sort_candidate_neighbours(P, 
                                                              candidate_neighbours, 
                                                              distance_type = distance_type, 
@@ -135,24 +136,24 @@ def generate_random_small_world_like_planar_graph(nb_nodes,
                     # Process the condition on the number of neighbours
                     nb_neighbours_not_a_problem = True
                     if max_nb_neighbours is not None:
-                        nb_neighbours = max(len(get_neighbours(adj_mat, nodes[P])), 
-                                            len(get_neighbours(adj_mat, nodes[Q])))
+                        nb_neighbours = max(len(get_neighbours(graph, nodes[P])), 
+                                            len(get_neighbours(graph, nodes[Q])))
                         if nb_neighbours >= max_nb_neighbours:
                             nb_neighbours_not_a_problem = False
 
                     # Add arc [P, Q] to 'arcs' if [P, Q] does not intersect with any of the arcs in 'arcs'
-                    if nb_neighbours_not_a_problem and (P, Q) not in arcs and (Q, P) not in arcs and not intersect((P, Q), arcs):
-                        arcs.add((P, Q))
-                        adj_mat[nodes[P]][nodes[Q]] = 1
-                        adj_mat[nodes[Q]][nodes[P]] = 1
+                    if nb_neighbours_not_a_problem and (P, Q) not in arcs_segs and (Q, P) not in arcs_segs and not intersect((P, Q), arcs_segs):
+                        arcs_segs.add((P, Q))
+                        add_arc(graph, nodes[P], nodes[Q])
+                        add_arc(graph, nodes[Q], nodes[P])
                         break
 
             nb_draws += 1
         
         # If the graph generated is connected return it as with the transport times and the segments else increment the numbers of tries
-        if is_connected (adj_mat):
-            raw_transport_times = generate_raw_times (nb_nodes, nodes, arcs, distance_type = "euclidean") 
-            return adj_mat, arcs, nodes, raw_transport_times
+        if is_connected (graph):
+            raw_transport_times = generate_raw_times (graph, nodes, arcs_segs, distance_type = "euclidean") 
+            return graph, arcs_segs, nodes, raw_transport_times
         nb_tries += 1
     
     return False, False, False, False

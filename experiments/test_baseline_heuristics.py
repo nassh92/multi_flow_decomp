@@ -10,6 +10,14 @@ import sys
 
 from copy import deepcopy
 
+import psutil
+
+import multiprocessing
+
+import concurrent.futures
+
+from itertools import product
+
 sys.path.append(os.getcwd())
 from utils.general_eval_msmd_metrics import (transition_function_residue, 
                      flow_val_residue, 
@@ -21,19 +29,262 @@ import utils.metrics
 from msmd.multi_flow_desag_instance_utils import construct_instances
 from msmd.multi_flow_desag_general_solver import MultiFlowDesagSolver 
 from msmd.multi_flow_desag_transf_solver import MultiFlowDesagSolverTransF
+from experiments.test_utils import process_performances
 
 
-def baseline_heurs_simulated_instances():
+
+
+# Function used to run experiments
+def run_experiment (mfd_instance,
+                    dict_results,
+                    ind_instance,
+                    test_infos,
+                    original_multi_flow,
+                    max_path_length, 
+                    nb_max_tries,
+                    max_nb_tries_find_path,
+                    maximal_flow_amount,
+                    reodering_pairs_policy_name,
+                    pair_criteria, 
+                    path_card_criteria,
+                    graph_representation = "adjacency_matrix"):
+    if test_infos[0] == "min_time":
+        # Create an multi flow desaggregation solver and desagregate the multi flow
+        solver = MultiFlowDesagSolver(mfd_instance = deepcopy(mfd_instance),
+                                    max_path_length = max_path_length, 
+                                    total_nb_iterations = nb_max_tries,
+                                    max_nb_tries_find_path = max_nb_tries_find_path,
+                                    maximal_flow_amount = maximal_flow_amount,
+                                    reodering_pairs_policy_name = reodering_pairs_policy_name,
+                                    path_selector_type = "min_time_based",
+                                    construct_trans_function = True,
+                                    exclude_chosen_nodes = False,
+                                    ignore_conflicts = False)
+        multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
+                                                                            path_card_criteria)
+    
+    elif test_infos[0] == "max_capacity":
+        # Create an multi flow desaggregation solver and desagregate the multi flow
+        solver = MultiFlowDesagSolver(mfd_instance = deepcopy(mfd_instance),
+                                    max_path_length = max_path_length, 
+                                    total_nb_iterations = nb_max_tries,
+                                    max_nb_tries_find_path = max_nb_tries_find_path,
+                                    maximal_flow_amount = maximal_flow_amount,
+                                    reodering_pairs_policy_name = reodering_pairs_policy_name,
+                                    path_selector_type = "max_capacity_based",
+                                    construct_trans_function = True,
+                                    exclude_chosen_nodes = False,
+                                    ignore_conflicts = False)
+        multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
+                                                                            path_card_criteria)
+
+    elif test_infos[0] == "trans_func":
+        # Create an multi flow desaggregation solver and desagregate the multi flow
+        solver = MultiFlowDesagSolverTransF(mfd_instance = deepcopy(mfd_instance),
+                                    max_path_length = max_path_length, 
+                                    total_nb_iterations = nb_max_tries,
+                                    max_nb_tries_find_path = max_nb_tries_find_path,
+                                    maximal_flow_amount = maximal_flow_amount,
+                                    reodering_pairs_policy_name = reodering_pairs_policy_name,
+                                    path_selector_type = "trans_func_based",
+                                    construct_trans_function = True,
+                                    exclude_chosen_nodes = False,
+                                    ignore_conflicts = False)
+        multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
+                                                                            path_card_criteria)
+
+    elif test_infos[0] == "random":
+        # Create an multi flow desaggregation solver and desagregate the multi flow
+        solver = MultiFlowDesagSolverTransF(mfd_instance = deepcopy(mfd_instance),
+                                    max_path_length = max_path_length, 
+                                    total_nb_iterations = nb_max_tries,
+                                    max_nb_tries_find_path = max_nb_tries_find_path,
+                                    maximal_flow_amount = maximal_flow_amount,
+                                    reodering_pairs_policy_name = reodering_pairs_policy_name,
+                                    path_selector_type = "random",
+                                    construct_trans_function = True,
+                                    exclude_chosen_nodes = False,
+                                    ignore_conflicts = False)
+        multi_flow_desag, flow_vals_desagg = solver.desagregate_multi_flow (pair_criteria, 
+                                                                            path_card_criteria)
+    
+    else:
+        print("Error in test name.", test_infos)
+        sys.exit()
+    
+    process_performances(flow_vals_desagg, 
+                        mfd_instance.original_flow_values, 
+                        multi_flow_desag,
+                        mfd_instance.original_aggregated_flow,
+                        original_multi_flow,
+                        mfd_instance.original_adj_mat,
+                        mfd_instance.ideal_transport_times,
+                        mfd_instance.pairs,
+                        mfd_instance.original_transition_function,
+                        solver,
+                        dict_results,
+                        ind_instance,
+                        test_infos,
+                        graph_representation = graph_representation)
+
+
+
+
+def baseline_heurs_simulated_instances_parallel(constructed_instances_path, 
+                                                path_results,
+                                                debug = False,
+                                                multi_process = True,
+                                                print_ = False):
     #print("Current directory : ", os.getcwd())
     # Directories
     #dir_name_graph_instance = "instance_generation/instances/capacity/instances_nbnodes=95_pairs=20/"
     #dir_name_multi_flow_instance = "multi_flow_generation/transition_function_instances/"
     #path_results = "results/temp/results_baseline_heuristics_95.pickle"
-    path_results = "results/temp/results_baseline_heuristics_smallworld.pickle"
+    #path_results = "results/temp/results_baseline_heuristics_smallworld.pickle"
+    
+    if print_: print("Instances treatment ")
+    # Construction of the instances
+    #constructed_instances_path = "data/simulated_data/complete_instances/node_pairs/data_instances_small_world_200_20.npy"
+    dict_instances = np.load(constructed_instances_path, 
+                             allow_pickle = True).flatten()[0]
+    
+    # Common parameters values
+    max_path_length = 10000
+    nb_max_tries = 50000
+    max_nb_tries_find_path = 20
+    maximal_flow_amount = 1
+
+    # Fixed parameters (for now)
+    reodering_pairs_policy_name = None
+    pair_criteria = "max_remaining_flow_val"
+    path_card_criteria = "one_only"
+
+    # Test names
+    test_names = ["min_time", 
+                "max_capacity", 
+                "trans_func", 
+                "random"]
+    
+
+    if debug:
+        multi_process = False
+     
+    nb_phys_cpus, nb_cpus = psutil.cpu_count(logical = False), psutil.cpu_count(logical = True)
+
+    print("Nb of CPUs ", nb_phys_cpus, nb_cpus)
+    
+    jobs = []
+    
+    manager = multiprocessing.Manager()
+
+    if multi_process:
+        #nb_cpu_workers = nb_phys_cpus
+        nb_cpu_workers = nb_cpus
+    else:
+        nb_cpu_workers = 1
+
+    graph_representation = "adjacency_list"
+
+    # Main
+    if debug:
+        dict_results = {}
+    else:
+        dict_results = manager.dict()
+        ls_args = [] 
+
+    # Main loop
+    for ind_instance, _, _ in dict_instances:
+        if print_: print("Treating instance ", ind_instance)
+        # Fetch instance
+        mfd_instance = deepcopy(dict_instances[(ind_instance, True, True)][0])
+        original_multi_flow = deepcopy(dict_instances[(ind_instance, True, True)][1])
+
+        # Test the tests
+        for test_n in test_names:
+            if debug:
+                run_experiment (mfd_instance,
+                        dict_results,
+                        ind_instance,
+                        (test_n,),
+                        original_multi_flow,
+                        max_path_length, 
+                        nb_max_tries,
+                        max_nb_tries_find_path,
+                        maximal_flow_amount,
+                        reodering_pairs_policy_name,
+                        pair_criteria, 
+                        path_card_criteria,
+                        graph_representation = graph_representation)
+            else:
+                ls_args.append((mfd_instance,
+                        dict_results,
+                        ind_instance,
+                        (test_n,),
+                        original_multi_flow,
+                        max_path_length, 
+                        nb_max_tries,
+                        max_nb_tries_find_path,
+                        maximal_flow_amount,
+                        reodering_pairs_policy_name,
+                        pair_criteria, 
+                        path_card_criteria,
+                        graph_representation))
+
+    if not debug:
+        nb_finished = 0
+        if print_: print("Avancement ", 0, " %")
+        with concurrent.futures.ProcessPoolExecutor(max_workers = nb_cpu_workers) as executor:
+            results = [executor.submit(run_experiment, *args) for args in ls_args]
+            for f in concurrent.futures.as_completed(results):
+                f.result()
+                nb_finished += 1
+                if print_: print("Avancement ", round(100*nb_finished/len(results), 2), " %") 
+          
+    # Save
+    res_key_metadata = test_names
+    res_value_metadata = ["flow_val_residue", "flow_residue", 
+                        "multi_flow_residue", "prop_flow_support", 
+                        "prop_shortest_paths", "transition_function_residue"]
+
+    with open(path_results, "wb") as handle:
+        pickle.dump({"res_key_metadata":res_key_metadata,
+                    "res_value_metadata":res_value_metadata, 
+                    "data":deepcopy(dict(dict_results))},
+                    handle,
+                    protocol = pickle.HIGHEST_PROTOCOL)
+
+
+
+
+def baseline_heurs_simulated_multiple_instances_set(dir_path_data,
+                                                list_file_names_instances, 
+                                                dir_results,
+                                                debug = False,
+                                                multi_process = True):
+    for f_name in list_file_names_instances:
+        constructed_instances_path = dir_path_data+f_name
+        print("Treatment of ", f_name)
+        baseline_heurs_simulated_instances_parallel(
+                                                    constructed_instances_path, 
+                                                    dir_results+"baseline_heuristics_"+f_name[:-4]+".gpickle",
+                                                    debug = debug,
+                                                    multi_process = multi_process
+                                                )
+
+
+
+
+def baseline_heurs_simulated_instances(constructed_instances_path, path_results):
+    #print("Current directory : ", os.getcwd())
+    # Directories
+    #dir_name_graph_instance = "instance_generation/instances/capacity/instances_nbnodes=95_pairs=20/"
+    #dir_name_multi_flow_instance = "multi_flow_generation/transition_function_instances/"
+    #path_results = "results/temp/results_baseline_heuristics_95.pickle"
+    #path_results = "results/temp/results_baseline_heuristics_smallworld.pickle"
     
     print("Instances treatment ")
     # Construction of the instances
-    constructed_instances_path = "data/simulated_data/complete_instances/node_pairs/data_instances_small_world_200_20.npy"
+    #constructed_instances_path = "data/simulated_data/complete_instances/node_pairs/data_instances_small_world_200_20.npy"
     dict_instances = np.load(constructed_instances_path, 
                              allow_pickle = True).flatten()[0]
     """dict_instances = construct_instances (
@@ -131,7 +382,7 @@ def baseline_heurs_simulated_instances():
                                                                                     path_card_criteria)
             
             else:
-                print("Error.")
+                print("Error in test name.")
                 sys.exit()
         
             print("Test ", test)
@@ -344,11 +595,26 @@ def baseline_heurs_real_instances(constructed_instances_path,
 
 #Main function
 def main():
-    test_names = {"simulated_instances", "real_instances"}
-    test_name = "simulated_instances"
+    test_names = {"simulated_instances", "simulate_instances_set", "real_instances"}
+    test_name = "simulate_instances_set"
 
     if test_name == "simulated_instances":
-        baseline_heurs_simulated_instances()
+        constructed_instances_path = "data/simulated_data/complete_instances/node_pairs/small_world_like2/nb_nodes=200_nb_pairs=20_nb_neighbours=4.npy"
+        path_results = "results/temp/aaa.npy"
+        baseline_heurs_simulated_instances_parallel(constructed_instances_path, 
+                                                    path_results,
+                                                    debug = False,
+                                                    multi_process = True)
+        
+    elif test_name == "simulate_instances_set":
+        dir_results = "results/"
+        ls_param_vals = list(product([100, 150, 200], [10, 15, 20], [3, 4]))
+        list_file_names_instances = ["nb_nodes="+str(a)+"_nb_pairs="+str(b)+"_nb_neighbours="+str(c)+".npy" for a, b , c in ls_param_vals]
+        baseline_heurs_simulated_multiple_instances_set(dir_path_data = "data/capacity_factor=14/",
+                                                        list_file_names_instances = list_file_names_instances,
+                                                        dir_results = dir_results,
+                                                        debug = False,
+                                                        multi_process = True)
 
     elif test_name == "real_instances":
         # Directories

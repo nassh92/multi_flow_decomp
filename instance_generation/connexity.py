@@ -1,9 +1,15 @@
+import os
+
+import sys
+
+sys.path.append(os.getcwd())
+from utils.graph_utils import has_arc, get_nodes
 
 
 def depth_first_search(adj_mat, u, visited):
     visited[u] = True
     for v in range(len(adj_mat)):
-        if adj_mat[u][v] == 1 and not visited[v]:
+        if has_arc(adj_mat, u, v) and not visited[v]:
             depth_first_search(adj_mat, v, visited)
 
 
@@ -15,14 +21,14 @@ def is_connected (adj_mat, source_node = 0):
     depth_first_search(adj_mat, source_node, visited)
 
     # Return True if the graph is connected and False otherwise
-    for u in range(len(adj_mat)):
+    for u in get_nodes(adj_mat):
         if not visited[u]: return False
     return True
 
 
 def is_strongly_connected (adj_mat):
     # Test if the nodes are accessible from all nodes
-    for node in range(len(adj_mat)):
+    for node in get_nodes(adj_mat):
         if not is_connected (adj_mat, node): return False
     return True
 

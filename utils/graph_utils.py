@@ -1,5 +1,5 @@
 import sys
-
+import types
 
 ########################################################################################################################
 ################################################ GRAPH API : adjancency list/matrix  ###################################
@@ -32,13 +32,20 @@ def is_adjacency_matrix(graph):
 
 def init_graph_arc_attribute_vals(graph, init_val = 0, dict_params = None):
      if isinstance(init_val, int):
-          init_val = lambda u, v, dict_param: 0
+          init_val_func = lambda u, v, dict_params: init_val
+     
+     elif isinstance(init_val, types.FunctionType):
+          init_val_func = init_val
 
+     else:
+          print("Expects a function or an int.")
+          sys.exit()
+     
      if isinstance(graph, list):
-          return [[init_val(u, v, dict_params) for v in range(len(graph))] 
+          return [[init_val_func(u, v, dict_params) for v in range(len(graph))] 
                                         for u in range(len(graph))]
      elif isinstance(graph, dict):
-          return {u:{v:init_val(u, v, dict_params) for v in successors(graph, u)} for u in graph}
+          return {u:{v:init_val_func(u, v, dict_params) for v in successors(graph, u)} for u in graph}
 
 
 def get_nb_nodes(graph):
