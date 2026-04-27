@@ -20,7 +20,7 @@ from instance_generation.generic_multi_flow_instances_generator import generate_
 from msmd.multi_flow_desag_instance_utils import MultiFlowDesagInstance
 from instance_generation.pairs_utils import process_weight_pairs, generate_origin_destination_pairs_local
 from instance_generation_osm.restrict_segments import show_duplicate_arcs_subgraph
-from utils.graph_utils import construct_predecessors_list, init_graph_arc_attribute_vals, get_arcs, delete_arc
+from utils.graph_utils import construct_predecessors_list, init_graph_arc_attribute_vals, get_arcs, delete_arc, GRAPH_REPRESENTATION_TYPES
 
 
 ###############################################################################################
@@ -72,11 +72,14 @@ def return_network_data(nx_graph, car_size = 1, print_ = False, graph_representa
     node_list = list(nx_graph.nodes)
     edge_list = [(node_list.index(u), node_list.index(v)) for u, v in nx_graph.edges]
     # Adjacency matrice
-    if graph_representation:
+    if graph_representation == "adjacency_matrix":
         graph = nx.to_numpy_array(nx_graph).tolist()
-    else:
+    elif graph_representation == "adjacency_list":
         graph = {node_list.index(node):[node_list.index(succ_node) for succ_node in successors_dict.keys()] 
                                                                         for node, successors_dict in nx_graph.adjacency()}
+    elif graph_representation not in GRAPH_REPRESENTATION_TYPES:
+          print("Graph representation type not recognized.")
+          sys.exit()
     # Capacity matrix : capacity = (number of lanes * length) / typical size of a car
     capacities_data = return_capacities_data(nx_graph, graph, node_list, edge_list, car_size)
     # Ideal times matrix = length / maxspeed
@@ -699,13 +702,13 @@ def main():
                                 nb_instances = 100,
                                 nb_pairs = 20,
                                 suffix_fname = "versailles",
-                                pairs_generation_type = "random",
+                                pairs_generation_type = "capacity",
                                 car_size = 5,
                                 min_fl = 1,
                                 nb_max_draws_pairs = 300,
                                 nb_it_print = None,
                                 save_dir = "data/real_data/pre_processed/Versailles/",
-                                graph_representation = "adjacency_matrix",
+                                graph_representation = "adjacency_list",
                                 generate_figure = [True, True],
                                 saved_path_file_pre_processed = "data/real_data/pre_processed/Versailles/versailles_preprocessed.gpickle")
     

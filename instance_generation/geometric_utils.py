@@ -20,7 +20,8 @@ DISTANCE_TYPES = {"euclidean"}
 
 NEIGHBOURS_SORTING_CRITERIAS = {"distance",
                                 "distance_n_nb_neighbours", 
-                                "nb_neighbours_n_distance"}
+                                "nb_neighbours_n_distance",
+                                "nb_neighbours_n_distance_n_shuffle_tresh"}
 
 
 def generate_nodes(grid_size, nb_nodes):
@@ -72,7 +73,7 @@ def sort_candidate_neighbours(P,
                               near_points, 
                               distance_type = "euclidean", 
                               sorting_criteria = "distance",
-                              opt_params = None):
+                              add_params = None):
     if sorting_criteria == "distance":
         sorted_points = sorted(near_points, 
                                key = lambda point : distance(P, 
@@ -80,7 +81,7 @@ def sort_candidate_neighbours(P,
                                                              distance_type = distance_type))
     
     elif sorting_criteria == "distance_n_nb_neighbours":
-        adj_mat, nodes = opt_params["graph"], opt_params["nodes"]
+        adj_mat, nodes = add_params["graph"], add_params["nodes"]
         sorted_points = sorted(near_points, 
                                key = lambda point : (distance(P, 
                                                              point, 
@@ -89,7 +90,7 @@ def sort_candidate_neighbours(P,
                                                     ))
         
     elif sorting_criteria == "nb_neighbours_n_distance":
-        adj_mat, nodes = opt_params["graph"], opt_params["nodes"]
+        adj_mat, nodes = add_params["graph"], add_params["nodes"]
         sorted_points = sorted(near_points, 
                                key = lambda point : (len(get_neighbours(adj_mat, nodes[point])),
                                                      distance(P, 
@@ -97,6 +98,19 @@ def sort_candidate_neighbours(P,
                                                              distance_type = distance_type),
                                                     ))
     
+    elif sorting_criteria == "nb_neighbours_n_distance_n_shuffle_tresh":
+        adj_mat, nodes = add_params["graph"], add_params["nodes"]
+        shuffle_tresh = add_params["shuffle_tresh"][len(adj_mat)]
+        sorted_points = sorted(near_points, 
+                               key = lambda point : (len(get_neighbours(adj_mat, nodes[point])),
+                                                     distance(P, 
+                                                             point, 
+                                                             distance_type = distance_type),
+                                                    ))
+        id_suffle = int(shuffle_tresh*len(sorted_points))
+        sub_arr = sorted_points[:id_suffle]
+        random.shuffle(sub_arr)
+        sorted_points[:id_suffle] = sub_arr
     else:
         print("Node sorting criteria unrocognized.")
         sys.exit()
@@ -113,4 +127,13 @@ def distance(P, Q, distance_type = "euclidean"):
         sys.exit()
     
     if distance_type == "euclidean": return np.linalg.norm(np.array(P) - np.array(Q))
+
+
+def restrict_points(points,
+                    graph,  
+                    nodes, 
+                    max_nb_neighbours = None):
+    if max_nb_neighbours is not None:
+        return [point for point in points if len(get_neighbours(graph, nodes[point])) < max_nb_neighbours]
+    return points 
         

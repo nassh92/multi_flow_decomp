@@ -97,7 +97,8 @@ def construct_complete_instances(dict_common_parameters,
                                  desired_flow_values = None,
                                  min_fl = 1,
                                  pairs_selection = "capacity",
-                                 graph_representation = "adjacency_matrix"):
+                                 graph_representation = "adjacency_matrix",
+                                 opt_params = None):
         # Fetch the common parametes from the dict 'dict_common_parameters'
         nb_instances = dict_common_parameters["nb_instances"]
         grid_size = dict_common_parameters["grid_size"]
@@ -146,7 +147,8 @@ def construct_complete_instances(dict_common_parameters,
                                                                 pairs_criteria = pairs_criteria,
                                                                 graph_representation = graph_representation,
                                                                 print_ = False,
-                                                                small_world_like = small_world_like)
+                                                                small_world_like = small_world_like,
+                                                                opt_params = opt_params)
                         
 
                         graph = infos_instance["adj_mat"] 
@@ -209,50 +211,59 @@ def construct_complete_instances(dict_common_parameters,
                         dict_instances)
         
         print("End of the instances generation.")
+        
 
 
 
 
 if __name__ == "__main__":
-    test_names = {"construct_instances_from_files", 
-                  "construct_complete_instances"}
+        test_names = {"construct_instances_from_files", 
+                  "construct_complete_instances",
+                  "change_pairs"}
     
-    test_name = "construct_complete_instances"
+        test_name = "construct_complete_instances"
     
-    if test_name == "construct_instances_from_files":
-        construct_instances_from_files()
+        if test_name == "construct_instances_from_files":
+                construct_instances_from_files()
     
-    elif test_name == "construct_complete_instances":
-        # Initialize the dictionary containing the common parameters
-        dict_common_parameters = dict()
-        dict_common_parameters["nb_instances"] = 100
-        dict_common_parameters["grid_size"] = 100
-        dict_common_parameters["radius_proportion"] = 1/2
-        dict_common_parameters["factor_nb_draws_gen_graph"] = 10
-        dict_common_parameters["max_nb_tries_gen_graph"] = 100
-        dict_common_parameters["base_capacity"] = 50
-        dict_common_parameters["capacity_factor"] = 14
-        dict_common_parameters["transport_time_fraction"] = 1/4
-        dict_common_parameters["factor_nb_max_draw_pairs"] = 10
-        dict_common_parameters["max_nb_neighbours"] = 6
-        dict_common_parameters["distance_type"] = "euclidean"
-        dict_common_parameters["sorting_criteria"] = "nb_neighbours_n_distance"
-        dict_common_parameters["pairs_generation"] = "capacity"
-        dict_common_parameters["pairs_criteria"] = 0
-        dict_common_parameters["small_world_like"] = True
+        elif test_name == "construct_complete_instances":
+                # Initialize the dictionary containing the common parameters
+                dict_common_parameters = dict()
+                dict_common_parameters["nb_instances"] = 100
+                dict_common_parameters["grid_size"] = 100
+                dict_common_parameters["radius_proportion"] = 2/5
+                dict_common_parameters["factor_nb_draws_gen_graph"] = 10
+                dict_common_parameters["max_nb_tries_gen_graph"] = 100
+                dict_common_parameters["base_capacity"] = 50
+                dict_common_parameters["capacity_factor"] = 14
+                dict_common_parameters["transport_time_fraction"] = 1/4
+                dict_common_parameters["factor_nb_max_draw_pairs"] = 10
+                dict_common_parameters["max_nb_neighbours"] = 6
+                dict_common_parameters["distance_type"] = "euclidean"
+                dict_common_parameters["sorting_criteria"] = "nb_neighbours_n_distance_n_shuffle_tresh"
+                dict_common_parameters["pairs_generation"] = "capacity"
+                dict_common_parameters["pairs_criteria"] = 0
+                dict_common_parameters["small_world_like"] = True
 
-        # ls_param_vals = [(nb_nodes, nb_pairs, desired_mean_nb_neighbours), ...]
-        ls_param_vals = list(itertools.product([100, 150, 200], [10, 15, 20], [3, 4]))
-        #ls_param_vals = [(200, 15, 4), (200, 20, 3), (200, 20, 4)]
+                # Optional parameters
+                opt_params = {"shuffle_tresh":{100:0.25, 150:0.20, 200:0.15}}
 
-        # The path where the instances are stored
-        dir_path = "data/simulated_data/complete_instances/node_pairs/small_world_like/capacity_factor=14/"
+                # ls_param_vals = [(nb_nodes, nb_pairs, desired_mean_nb_neighbours), ...]
+                ls_param_vals = list(itertools.product([100, 150, 200], [10, 15, 20], [3, 4]))
+                #ls_param_vals = list(itertools.product([200], [10, 15, 20], [3, 4]))
+                #ls_param_vals = [(200, 15, 4), (200, 20, 3), (200, 20, 4)]
 
-        # Generate complete instances
-        construct_complete_instances(dict_common_parameters, 
-                                     ls_param_vals,
-                                     dir_path = dir_path,
-                                     desired_flow_values = None,
-                                     min_fl = 1,
-                                     pairs_selection = "capacity",
-                                     graph_representation = "adjacency_list")
+                # The path where the instances are stored
+                dir_path = "data/simulated_data/complete_instances/node_pairs/small_world_like/capacity_capacity_capfactor=14/nb_neighbours_n_distance_n_shuffle_tresh/"
+
+                # Generate complete instances
+                construct_complete_instances(dict_common_parameters, 
+                                        ls_param_vals,
+                                        dir_path = dir_path,
+                                        desired_flow_values = None,
+                                        min_fl = 1,
+                                        pairs_selection = "capacity",
+                                        graph_representation = "adjacency_list",
+                                        opt_params = opt_params)
+        elif test_name == "change_pairs":
+                pass

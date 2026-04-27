@@ -13,7 +13,7 @@ import sys
 import math
 
 sys.path.append(os.getcwd())
-from instance_generation.geometric_utils import DISTANCE_TYPES, generate_nodes, get_near_nodes, distance, sort_candidate_neighbours
+from instance_generation.geometric_utils import DISTANCE_TYPES, generate_nodes, get_near_nodes, distance, sort_candidate_neighbours, restrict_points
 
 from instance_generation.time_costs_generator import generate_raw_times
 
@@ -93,8 +93,9 @@ def generate_random_small_world_like_planar_graph(nb_nodes,
                                                   max_nb_tries,
                                                   max_nb_neighbours = None, 
                                                   distance_type = "euclidean",
-                                                  sorting_criteria = "distance",
+                                                  sorting_criteria = "nb_neighbours_n_distance",
                                                   graph_representation = "adjacency_matrix",
+                                                  opt_params = None,
                                                   print_ = False):
     # Atempt to generate a planar random graph for a maximum of 'max_nb_tries' times
     nb_tries = 0
@@ -114,17 +115,23 @@ def generate_random_small_world_like_planar_graph(nb_nodes,
                 print("The try number / Number of nodes pairs drawn ", nb_tries, " / ",nb_draws)
 
             # Select a new candidate arc to be added in 'arcs'
-            P = points[random.randint(0, len(points)-1)]
+            points_restrict_deg = restrict_points(points,
+                                                    graph,
+                                                    nodes, 
+                                                    max_nb_neighbours = max_nb_neighbours)
+            P = points_restrict_deg[random.randint(0, len(points_restrict_deg)-1)]
             candidate_neighbours = get_near_nodes(P, 
-                                                  points, 
+                                                  points_restrict_deg, 
                                                   r, 
                                                   distance_type = distance_type)
-            opt_params = {"graph":graph, "nodes":nodes}
+            add_params = {"graph":graph, 
+                          "nodes":nodes, 
+                          "shuffle_tresh":opt_params["shuffle_tresh"]}
             candidate_neighbours = sort_candidate_neighbours(P, 
                                                              candidate_neighbours, 
                                                              distance_type = distance_type, 
                                                              sorting_criteria = sorting_criteria,
-                                                             opt_params = opt_params)
+                                                             add_params = add_params)
 
             if len(candidate_neighbours) != 0:
                 # Select the second point of the arc in case P has neighbours with distance 'r'
@@ -133,16 +140,8 @@ def generate_random_small_world_like_planar_graph(nb_nodes,
                     # Select the the candidate neighbour of index 'ix' 
                     Q = candidate_neighbours[ix]
                     
-                    # Process the condition on the number of neighbours
-                    nb_neighbours_not_a_problem = True
-                    if max_nb_neighbours is not None:
-                        nb_neighbours = max(len(get_neighbours(graph, nodes[P])), 
-                                            len(get_neighbours(graph, nodes[Q])))
-                        if nb_neighbours >= max_nb_neighbours:
-                            nb_neighbours_not_a_problem = False
-
                     # Add arc [P, Q] to 'arcs' if [P, Q] does not intersect with any of the arcs in 'arcs'
-                    if nb_neighbours_not_a_problem and (P, Q) not in arcs_segs and (Q, P) not in arcs_segs and not intersect((P, Q), arcs_segs):
+                    if (P, Q) not in arcs_segs and (Q, P) not in arcs_segs and not intersect((P, Q), arcs_segs):
                         arcs_segs.add((P, Q))
                         add_arc(graph, nodes[P], nodes[Q])
                         add_arc(graph, nodes[Q], nodes[P])

@@ -36,11 +36,13 @@ def generate_random_instance(nb_nodes, grid_size, r, nb_edges, max_nb_draws_gen_
                              max_nb_tries_gen_graph, base_capacity, 
                              capacity_factor, transport_time_fraction, 
                              nb_pairs, nb_max_draws_pairs,
-                             sorting_criteria = "distance",
+                             sorting_criteria = "nb_neighbours_n_distance",
                              max_nb_neighbours = None, small_world_like = False,
                              distance_type = "euclidean", pairs_generation = "degree",
                              graph_representation = "adjacency_matrix", 
-                             pairs_criteria = 0, print_ = False):
+                             pairs_criteria = 0,
+                             opt_params = None, 
+                             print_ = False):
     # Generate a random planar graph
     if not small_world_like:
         adj_mat, arcs, nodes, raw_transport_times = generate_random_planar_graph(nb_nodes = nb_nodes,
@@ -63,7 +65,8 @@ def generate_random_instance(nb_nodes, grid_size, r, nb_edges, max_nb_draws_gen_
                                                                                     max_nb_neighbours = max_nb_neighbours,
                                                                                     sorting_criteria = sorting_criteria,
                                                                                     distance_type = distance_type,
-                                                                                    graph_representation = graph_representation, 
+                                                                                    graph_representation = graph_representation,
+                                                                                    opt_params = opt_params, 
                                                                                     print_ = print_)
 
     if isinstance(adj_mat, bool):
@@ -95,7 +98,11 @@ def generate_random_instance(nb_nodes, grid_size, r, nb_edges, max_nb_draws_gen_
         # Calculate the matrix which will serve to generate the pairs
         arc_attribute_vals = adj_mat if pairs_generation == "degree" else capacities if pairs_generation == "capacity" else None
         # Generate the weights and the pairs
-        pairs = generate_origin_destination_pairs_local (nb_pairs, arc_attribute_vals, nb_max_draws = nb_max_draws_pairs)
+        pairs = generate_origin_destination_pairs_local (nb_pairs, 
+                                                         adj_mat,
+                                                         arc_attribute_vals,
+                                                         pairs_generation,
+                                                         nb_max_draws = nb_max_draws_pairs)
         weight_pairs = process_weight_pairs(pairs, 
                                             adj_mat,
                                             arc_attribute_vals = arc_attribute_vals, 

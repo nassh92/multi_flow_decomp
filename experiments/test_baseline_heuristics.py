@@ -449,7 +449,7 @@ def baseline_heurs_real_instances(constructed_instances_path,
     # Common parameters values
     max_path_length = 10000
     nb_max_tries = 50000
-    max_nb_tries_find_path = 10
+    max_nb_tries_find_path = 20
     maximal_flow_amount = 1
 
     # Fixed parameters (for now)
@@ -619,13 +619,15 @@ def main():
     elif test_name == "real_instances":
         # Directories
         #constructed_instances_path = "multi_flow_generation_wei/data/data_instances.npy"
-        constructed_instances_path = "data/real_data/pre_processed/Versailles/data_instances.npy"
+        constructed_instances_path = "data/real_data/pre_processed/Versailles/data_instances_versailles_capacity.npy"
         #path_results = "results/simulated/MFDS_vs_RL/results_test/"+"results_rl_heuristics.npy"
         #path_results = "results/"+"results_versailles_heuristics.pickle"
-        path_results = "results/"+"results_versailles_heuristics.pickle"
-        baseline_heurs_real_instances(constructed_instances_path,
-                                      path_results,
-                                      graph_representation = "adjacency_list")
+        path_results = "results/"+"results_versailles_heuristics_capacity.pickle"
+        baseline_heurs_simulated_instances_parallel(constructed_instances_path, 
+                                                    path_results,
+                                                    debug = False,
+                                                    multi_process = True,
+                                                    print_ = True)
 
     elif test_name not in test_names:
         print("Test name is unrecognized.")

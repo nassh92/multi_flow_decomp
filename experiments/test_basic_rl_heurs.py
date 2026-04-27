@@ -126,6 +126,7 @@ def basic_rl_heurs_simulated_instances(constructed_instances_path = None,
     # Test names
     #ls_path_selector_types = ["rl_node_based", "rl_arc_based"]
     ls_path_selector_types = ["rl_arc_based"]
+    print(ls_path_selector_types)
     #ls_path_card_criteria = ["one_only", "one_for_each"]
     ls_path_card_criteria = ["one_only"]
     #ls_learning_rates = [0.01, 0.025, 0.05, 0.075, 0.1]
@@ -305,16 +306,19 @@ def basic_rl_heurs_simulated_multiple_instances_set(dir_path_data,
 
 
 
-def basic_rl_heurs_lieu_saint_real_instances():
+def basic_rl_heurs_lieu_saint_real_instances(constructed_instances_path,
+                                             path_results,
+                                             graph_representation = "adjacency_matrix"):
     print("Satring main.")
     # Construction of the instances
     #constructed_instances_path = "multi_flow_generation_wei/data/data_instances.npy"
     #constructed_instances_path = "data/real_data/pre_processed/LieuSaint/data_instances.npy"
     #constructed_instances_path = "data/data_instances.npy"
-    constructed_instances_path = "data/data_instances_small_world_200_20.npy"
+    #constructed_instances_path = "data/data_instances_small_world_200_20.npy"
+    #constructed_instances_path = "data/real_data/pre_processed/Versailles/data_instances_versailles.npy"
     #path_results = "results/simulated/MFDS_vs_RL/results_test/"+"results_rl_heuristics.npy"
     #path_results = "results/"+"results_lieu_saint_rl_heuristics.pickle"
-    path_results = "results/"+"results_versailles_rl_heuristics.pickle"
+    #path_results = "results/"+"results_versailles_rl_heuristics.pickle"
     print(constructed_instances_path)
     print(path_results)
     # Common parameters values
@@ -325,7 +329,7 @@ def basic_rl_heurs_lieu_saint_real_instances():
     pair_criteria = "max_remaining_flow_val"
 
     # Dict rl params
-    nb_episodes = 31
+    nb_episodes = 51
     print("Nb episodes ", nb_episodes)
     dict_params_rl_agent = {"ag_type":"LRI",
                             "lr":0.05,
@@ -337,10 +341,15 @@ def basic_rl_heurs_lieu_saint_real_instances():
 
     # Test names
     ls_path_selector_types = ["rl_arc_based"]
-    ls_path_card_criteria = ["one_for_each"]
+    #ls_path_card_criteria = ["one_for_each"]
+    ls_path_card_criteria = ["one_only"]
     #ls_learning_rates = [0.01, 0.025, 0.05, 0.075, 0.1]
     ls_learning_rates = [0.01]
     print("Learning rates ", ls_learning_rates)
+
+    successor_selector_type = "standard"
+    rl_data_init_type = "uniform"
+
     # Meta data
     res_key_metadata = ["path_type_selector", "path_card_criteria", 
                         "lr_rate", "coeffs_list"]
@@ -350,8 +359,8 @@ def basic_rl_heurs_lieu_saint_real_instances():
                           "reward"]
     no_transition_function = False
     print("No trans func ", no_transition_function)
-    penalty_init_val, decay_param = 0, 0.99
-    print("Decay param ", decay_param)
+    #penalty_init_val, decay_param = 0, 0.99
+    #print("Decay param ", decay_param)
 
     debug = False
     multi_process = True
@@ -397,8 +406,12 @@ def basic_rl_heurs_lieu_saint_real_instances():
                         mfd_instance = deepcopy(dict_instances[(ind_instance, True, True)][0])
                         original_multi_flow = dict_instances[(ind_instance, True, True)][1]
                         
-                        opt_params = {"penalty_init_val":penalty_init_val, 
-                                    "decay_param":decay_param}
+                        opt_params = {"penalty_init_val":0, 
+                                    "decay_param":None,
+                                    "reward_discount_type":"discount_by_cost",
+                                    "penalize_circuits":False,
+                                    "circuit_penalty_param":None,
+                                    "graph_representation":graph_representation}
                         
                         if path_card_criteria == "one_only":
                             reodering_pairs_policy_name = None
@@ -436,7 +449,10 @@ def basic_rl_heurs_lieu_saint_real_instances():
                                             opt_params,
                                             pair_criteria, 
                                             path_card_criteria,
-                                            (coeff1, coeff2, coeff3))
+                                            (coeff1, coeff2, coeff3),
+                                            successor_selector_type = successor_selector_type,
+                                            rl_data_init_type = rl_data_init_type,
+                                            graph_representation = graph_representation)
                         else:
                             ls_args.append((mfd_instance,
                                             dict_results,
@@ -454,7 +470,10 @@ def basic_rl_heurs_lieu_saint_real_instances():
                                             opt_params,
                                             pair_criteria, 
                                             path_card_criteria,
-                                            (coeff1, coeff2, coeff3)))
+                                            (coeff1, coeff2, coeff3),
+                                            successor_selector_type,
+                                            rl_data_init_type,
+                                            graph_representation))
 
     if not debug:
         nb_finished = 0
@@ -481,7 +500,7 @@ def main():
     test_names = {"simulated_instances",
                   "simulate_instances_set", 
                   "lieu_saint_real_instances"}
-    test_name = "simulate_instances_set"
+    test_name = "lieu_saint_real_instances"
 
     if test_name == "simulated_instances":
         basic_rl_heurs_simulated_instances()
@@ -498,7 +517,13 @@ def main():
                                                         print_ = False)
 
     elif test_name == "lieu_saint_real_instances":
-        basic_rl_heurs_lieu_saint_real_instances()
+        #constructed_instances_path = "data/real_data/pre_processed/Versailles/data_instances_versailles.npy"
+        #constructed_instances_path = "data/real_data/pre_processed/data_instances_versailles.npy"
+        constructed_instances_path = "data/real_data/pre_processed/data_instances_versailles_capacity.npy"
+        path_results = "results/"+"results_versailles_rl_heuristics_capacity.pickle" 
+        basic_rl_heurs_lieu_saint_real_instances(constructed_instances_path,
+                                                 path_results,
+                                                 graph_representation = "adjacency_list")
 
     elif test_name not in test_names:
         print("Test name is unrecognized.")

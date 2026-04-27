@@ -31,7 +31,7 @@ def is_adjacency_matrix(graph):
 
 
 def init_graph_arc_attribute_vals(graph, init_val = 0, dict_params = None):
-     if isinstance(init_val, int):
+     if isinstance(init_val, int) or isinstance(init_val, float):
           init_val_func = lambda u, v, dict_params: init_val
      
      elif isinstance(init_val, types.FunctionType):

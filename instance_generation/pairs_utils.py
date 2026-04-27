@@ -139,7 +139,7 @@ def generate_random_origin_destination_pairs (nb_pairs, graph, nb_max_draws):
 ##################  
 #######                                Generate the O/D pairs using the degrees with adjacency matrix or the capacities with the matrix of capacities
 ##################
-def generate_origin_destination_pairs_local (nb_pairs, graph, nb_max_draws):
+def generate_origin_destination_pairs_local (nb_pairs, graph, arc_attribute_vals, pairs_generation, nb_max_draws):
     """
     graph_mat can either be the adjacency matrix or the weights capacities 
     """
@@ -148,10 +148,19 @@ def generate_origin_destination_pairs_local (nb_pairs, graph, nb_max_draws):
     ###################################################################################################
     # Get all the nodes of a graph 
     nodes = get_nodes(graph)
-    # Calculate the weights associated to a node being picked as a source
-    weight_sources = [out_degree(graph, u) for u in nodes]
-    # Calculate the weights associated to a node being picked as a destination
-    weight_destinations = [in_degree(graph, v) for v in nodes]
+    if pairs_generation == "degree":
+        # Calculate the weights associated to a node being picked as a source
+        weight_sources = [out_degree(graph, u) for u in nodes]
+        # Calculate the weights associated to a node being picked as a destination
+        weight_destinations = [in_degree(graph, v) for v in nodes]
+    else:
+        weight_sources = [sum_out_attributes(arc_attribute_vals, 
+                                             graph, 
+                                             node) for node in nodes]
+        # A dict containing the destinations associated with their weight (indegree)
+        weight_destinations = [sum_in_attributes(arc_attribute_vals, 
+                                                 graph, 
+                                                 node) for node in nodes]
     # Choose randomly 'nb_pairs' of source-destination pairs according to 'weight_sources' and 'weight_destinations'
     pairs, num_draw = [], 0
     while len(pairs) < nb_pairs and num_draw < nb_max_draws:
