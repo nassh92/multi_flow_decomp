@@ -128,7 +128,7 @@ def basic_rl_heurs_simulated_instances(constructed_instances_path = None,
     ls_path_selector_types = ["rl_arc_based"]
     print(ls_path_selector_types)
     #ls_path_card_criteria = ["one_only", "one_for_each"]
-    ls_path_card_criteria = ["one_only"]
+    ls_path_card_criteria = ["one_for_each"]
     #ls_learning_rates = [0.01, 0.025, 0.05, 0.075, 0.1]
     ls_learning_rates = [0.01]
     # Successor selector types
@@ -197,7 +197,7 @@ def basic_rl_heurs_simulated_instances(constructed_instances_path = None,
                         
                         opt_params = {"penalty_init_val":0, 
                                     "decay_param":None,
-                                    "reward_discount_type":"discount_by_length",
+                                    "reward_discount_type":"discount_by_cost",
                                     "penalize_circuits":False,
                                     "circuit_penalty_param":None,
                                     "graph_representation":graph_representation}
@@ -500,14 +500,16 @@ def main():
     test_names = {"simulated_instances",
                   "simulate_instances_set", 
                   "lieu_saint_real_instances"}
-    test_name = "lieu_saint_real_instances"
+    test_name = "simulate_instances_set"
 
     if test_name == "simulated_instances":
         basic_rl_heurs_simulated_instances()
 
     elif test_name == "simulate_instances_set":
         dir_results = "results/"
-        ls_param_vals = list(product([100, 150, 200], [10, 15, 20], [3, 4]))
+        #ls_param_vals = list(product([100, 150, 200], [10, 15, 20], [3, 4]))
+        ls_param_vals = list(product([200], [10, 15, 20], [3, 4]))
+        ls_param_vals = [(150, 20, 4)]+ls_param_vals
         list_file_names_instances = ["nb_nodes="+str(a)+"_nb_pairs="+str(b)+"_nb_neighbours="+str(c)+".npy" for a, b , c in ls_param_vals]
         basic_rl_heurs_simulated_multiple_instances_set(dir_path_data = "data/capacity_factor=14/",
                                                         list_file_names_instances = list_file_names_instances , 
