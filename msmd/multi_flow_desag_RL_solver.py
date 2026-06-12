@@ -4,7 +4,7 @@ import numpy as np
 from copy import deepcopy
 import os
 sys.path.append(os.getcwd())
-from utils.general_eval_msmd_metrics import transition_function_residue, flow_val_residue, flow_residue
+from utils.general_eval_msmd_metrics import transition_function_residue, flow_val_residue, flow_residue, multi_flow_residue
 from utils.graph_utils import create_isolated_nodes_graph, init_graph_arc_attribute_vals, has_arc, successors, get_arcs
 from msmd.multi_flow_desag_general_solver import MultiFlowDesagSolver
 from msmd.path_selectors import RLPathSelector, PATH_SELECTOR_TYPES
@@ -33,7 +33,7 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
                  exclude_chosen_nodes = False,
                  successor_selector_type = "standard",
                  rl_data_init_type = "flow_based",
-                 store_perfs_evol_path = None,
+                 store_perfs_evol_path = False,
                  ignore_conflicts = False,
                  graph_representation = "adjacency_matrix",
                  opt_params = None):
@@ -49,7 +49,7 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
         self.nb_episodes = nb_episodes
         # True iif we want to save the evolution of the performance metrics
         self.store_perfs_evol_path = store_perfs_evol_path
-        self.performance_metrics_evol = None if store_perfs_evol_path is None else []
+        self.performance_metrics_evol = None if not store_perfs_evol_path else []
         # Save optional parameters for later (possible use)
         self.opt_params = opt_params
         # Calling the parent constructor
@@ -72,7 +72,7 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
         if  path_selector_type is None:
             print("Path selector must not be None.")
             sys.exit()
-
+        
         elif path_selector_type not in PATH_SELECTOR_TYPES:
             print("Path selector type is unrecognized : ", path_selector_type)
             sys.exit()
@@ -155,12 +155,9 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
         return reward, fl_val_res, fl_res, transf_res
     
 
-    def store_performance_metrics(self, ls_perfs):
+    def store_performance_metrics(self, perfs_dict):
         # reward, fl_val_res, fl_res, transf_res
-        self.performance_metrics_evol.append({"reward":ls_perfs[0], 
-                                              "fl_val_res":ls_perfs[1], 
-                                              "fl_res":ls_perfs[2], 
-                                              "transf_res":ls_perfs[3]})
+        self.performance_metrics_evol.append(perfs_dict)
     
     
     def desagregate_multi_flow (self, pair_criteria, path_card_criteria,
@@ -209,11 +206,24 @@ class MultiFlowDesagRLSolver(MultiFlowDesagSolver):
             if self._has_iterated_too_much() and show: print("!!!! Maximum iteration number attained. !!! ")
             # Process relevant perfomance metric (including the reward)
             reward, fl_val_res, fl_res, transf_res = self.process_perfs(multi_flow, coeff1, coeff2, coeff3)
+            
             # Save the relevant performance metrics if we want to
-            if self.performance_metrics_evol is not None: self.store_performance_metrics([reward, fl_val_res, fl_res, transf_res])
+            if self.performance_metrics_evol is not None:
+                # Calculate the multiflow residue
+                m_flow_res = multi_flow_residue(multi_flow, 
+                                   self.opt_params["multi_flow_desag"], 
+                                   self.mfd_instance.original_aggregated_flow, 
+                                   self.mfd_instance.original_adj_mat)
+                # The perfdict
+                perfs_dict = {"reward":reward, 
+                              "fl_val_res":fl_val_res, 
+                              "fl_res":fl_res, 
+                              "m_flow_res":m_flow_res,
+                              "transf_res":transf_res}
+                # Store the perf
+                self.store_performance_metrics(perfs_dict)
+            
             # Update the policies of the agent
             self.path_selector.update_agents_policies(reward)
-        # Save the performances metrics
-        if self.performance_metrics_evol is not None: np.save(self.store_perfs_evol_path, self.performance_metrics_evol)
 
         return multi_flow, self.generated_flow_values

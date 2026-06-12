@@ -83,7 +83,7 @@ class MultiFlowDesagSolver():
     def create_desaggregator_paths_attributes(self, path_selector_type, max_path_length, exclude_chosen_nodes):
         # Set 'update_transition_functions' to False
         self.mfd_instance.update_transition_functions = False
-
+        
         # Creation of a path selector
         if path_selector_type is None:
             print("None value is unsupported for path selector.")
